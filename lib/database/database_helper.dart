@@ -1,0 +1,135 @@
+import 'dart:io';
+import 'package:sqflite_common_ffi/sqflite_ffi.dart';
+import 'package:path/path.dart';
+import 'package:path_provider/path_provider.dart';
+import 'migrations.dart';
+
+class DatabaseHelper {
+  static final DatabaseHelper _instance = DatabaseHelper._internal();
+  factory DatabaseHelper() => _instance;
+  DatabaseHelper._internal();
+
+  Database? _database;
+
+  Future<Database> get database async {
+    if (_database != null) return _database!;
+    _database = await _initDatabase();
+    return _database!;
+  }
+
+  Future<Database> _initDatabase() async {
+    sqfliteFfiInit();
+    final databaseFactory = databaseFactoryFfi;
+
+    final Directory appDocDir = await getApplicationDocumentsDirectory();
+    final String dbPath = join(appDocDir.path, 'myrich.db');
+
+    final database = await databaseFactory.openDatabase(
+      dbPath,
+      version: DatabaseMigrations.currentVersion,
+      onCreate: _onCreate,
+      onUpgrade: _onUpgrade,
+    );
+
+    return database;
+  }
+
+  Future<void> _onCreate(Database db, int version) async {
+    final batch = db.batch();
+    for (final table in DatabaseMigrations.allTables) {
+      batch.execute(table);
+    }
+    await batch.commit(noTransaction: true);
+
+    await _createIndexes(db);
+    await _insertDefaultData(db);
+  }
+
+  Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
+  }
+
+  Future<void> _createIndexes(Database db) async {
+    await db.execute('''
+      CREATE INDEX IF NOT EXISTS idx_asset_records_asset_id ON asset_records(asset_id);
+    ''');
+    await db.execute('''
+      CREATE INDEX IF NOT EXISTS idx_asset_records_record_date ON asset_records(record_date);
+    ''');
+    await db.execute('''
+      CREATE INDEX IF NOT EXISTS idx_assets_type_id ON assets(type_id);
+    ''');
+  }
+
+  Future<void> _insertDefaultData(Database db) async {
+    final now = DateTime.now().millisecondsSinceEpoch;
+
+    final systemAssetTypes = [
+      {'name': '现金', 'icon': 'cash', 'color': '#4CAF50'},
+      {'name': '银行存款', 'icon': 'bank', 'color': '#2DBF3'},
+      {'name': '股票', 'icon': 'trending_up', 'color': '#F44336'},
+      {'name': '基金', 'icon': 'pie_chart', 'color': '#FF9800'},
+      {'name': '债券', 'icon': 'receipt', 'color': '#9C27B0'},
+      {'name': '房产', 'icon': 'home', 'color': '#795548'},
+      {'name': '加密货币', 'icon': 'currency_bitcoin', 'color': '#FF5722'},
+      {'name': '期货', 'icon': 'show_chart', 'color': '#607D8B'},
+      {'name': '借款', 'icon': 'arrow_upward', 'color': '#8BC34A'},
+      {'name': '贷款', 'icon': 'arrow_downward', 'color': '#E91E63'},
+    ];
+
+    for (final type in systemAssetTypes) {
+      await db.insert('asset_types', {
+        'name': type['name'],
+        'icon': type['icon'],
+        'color': type['color'],
+        'is_system': 1,
+        'created_at': now,
+        'updated_at': now,
+      });
+    }
+
+    final defaultDashboardLayout = '''
+    {
+      "cards": [
+        {
+          "id": "total_assets",
+          "type": "stat_card",
+          "position": {"x": 0, "y": 0},
+          "size": {"width": 2, "height": 1},
+          "config": {
+            "title": "总资产",
+            "metric": "total_value",
+            "timeRange": "all"
+          }
+        },
+        {
+          "id": "distribution",
+          "type": "asset_distribution_pie",
+          "position": {"x": 0, "y": 1},
+          "size": {"width": 2, "height": 2},
+          "config": {"timeRange": "all"}
+        },
+        {
+          "id": "trend",
+          "type": "asset_trend_line",
+          "position": {"x": 2, "y": 0},
+          "size": {"width": 2, "height": 3},
+          "config": {"timeRange": "month"}
+        }
+      ]
+    }
+    ''';
+
+    await db.insert('dashboard_configs', {
+      'name': '默认看板',
+      'layout': defaultDashboardLayout,
+      'is_default': 1,
+      'created_at': now,
+      'updated_at': now,
+    });
+  }
+
+  Future<void> close() async {
+    final db = await database;
+    await db.close();
+  }
+}
