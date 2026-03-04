@@ -58,3 +58,6 @@ htmlcov/
 data/
 *.bak
 *.tmp
+
+# UI/UX Pro Max Skill (local only)
+ui-ux-pro-max/
