@@ -5,7 +5,6 @@ import 'providers/asset_provider.dart';
 import 'providers/asset_record_provider.dart';
 import 'screens/dashboard_screen.dart';
 import 'screens/asset_list_screen.dart';
-import 'screens/asset_detail_screen.dart';
 
 void main() {
   runApp(const MyApp());

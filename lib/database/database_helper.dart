@@ -26,9 +26,11 @@ class DatabaseHelper {
 
     final database = await databaseFactory.openDatabase(
       dbPath,
-      version: DatabaseMigrations.currentVersion,
-      onCreate: _onCreate,
-      onUpgrade: _onUpgrade,
+      options: OpenDatabaseOptions(
+        version: DatabaseMigrations.currentVersion,
+        onCreate: _onCreate,
+        onUpgrade: _onUpgrade,
+      ),
     );
 
     return database;
@@ -39,7 +41,7 @@ class DatabaseHelper {
     for (final table in DatabaseMigrations.allTables) {
       batch.execute(table);
     }
-    await batch.commit(noTransaction: true);
+    await batch.commit();
 
     await _createIndexes(db);
     await _insertDefaultData(db);
