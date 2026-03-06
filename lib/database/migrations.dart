@@ -1,5 +1,5 @@
 class DatabaseMigrations {
-  static const int currentVersion = 1;
+  static const int currentVersion = 2;
 
   static String get createAssetTypesTable => '''
     CREATE TABLE asset_types (
@@ -7,7 +7,6 @@ class DatabaseMigrations {
       name TEXT NOT NULL,
       icon TEXT,
       color TEXT,
-      fields_schema TEXT,
       is_system INTEGER DEFAULT 0,
       created_at INTEGER NOT NULL,
       updated_at INTEGER NOT NULL
@@ -52,11 +51,29 @@ class DatabaseMigrations {
     )
   ''';
 
-  static String get createIndexes => '''
-batch
-    CREATE INDEX idx_asset_records_asset_id ON asset_records(asset_id);
-    CREATE INDEX idx_asset_records_record_date ON asset_records(record_date);
-    CREATE INDEX idx_assets_type_id ON assets(type_id);
+  static String get createDashboardsTable => '''
+    CREATE TABLE dashboards (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL,
+      is_default INTEGER DEFAULT 0,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL
+    )
+  ''';
+
+  static String get createDashboardWidgetsTable => '''
+    CREATE TABLE dashboard_widgets (
+      id TEXT PRIMARY KEY,
+      dashboard_id TEXT NOT NULL,
+      title TEXT NOT NULL,
+      type TEXT NOT NULL,
+      x INTEGER NOT NULL,
+      y INTEGER NOT NULL,
+      w INTEGER NOT NULL,
+      h INTEGER NOT NULL,
+      config TEXT,
+      FOREIGN KEY (dashboard_id) REFERENCES dashboards(id)
+    )
   ''';
 
   static List<String> get allTables => [
@@ -64,5 +81,7 @@ batch
     createAssetsTable,
     createAssetRecordsTable,
     createDashboardConfigsTable,
+    createDashboardsTable,
+    createDashboardWidgetsTable,
   ];
 }

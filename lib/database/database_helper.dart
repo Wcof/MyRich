@@ -42,12 +42,24 @@ class DatabaseHelper {
       batch.execute(table);
     }
     await batch.commit();
-
+    
     await _createIndexes(db);
     await _insertDefaultData(db);
   }
 
   Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
+    switch (oldVersion) {
+      case 1:
+        await _migrateFromV1ToV2(db);
+        break;
+      default:
+        break;
+    }
+  }
+
+  Future<void> _migrateFromV1ToV2(Database db) async {
+    await db.execute(DatabaseMigrations.createDashboardsTable);
+    await db.execute(DatabaseMigrations.createDashboardWidgetsTable);
   }
 
   Future<void> _createIndexes(Database db) async {
@@ -67,7 +79,7 @@ class DatabaseHelper {
 
     final systemAssetTypes = [
       {'name': '现金', 'icon': 'cash', 'color': '#4CAF50'},
-      {'name': '银行存款', 'icon': 'bank', 'color': '#2DBF3'},
+      {'name': '银行存款', 'icon': 'bank', 'color': '#2196F3'},
       {'name': '股票', 'icon': 'trending_up', 'color': '#F44336'},
       {'name': '基金', 'icon': 'pie_chart', 'color': '#FF9800'},
       {'name': '债券', 'icon': 'receipt', 'color': '#9C27B0'},
