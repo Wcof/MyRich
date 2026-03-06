@@ -44,7 +44,8 @@ class GridLayoutManager {
 
     for (int y = 0; y < maxRows - newWidgetHeight + 1; y++) {
       for (int x = 0; x < maxColumns - newWidgetWidth + 1; x++) {
-        if (_canPlaceWidget(matrix, x, y, newWidgetWidth, newWidgetHeight, maxColumns)) {
+        if (_canPlaceWidget(
+            matrix, x, y, newWidgetWidth, newWidgetHeight, maxColumns)) {
           return (x, y);
         }
       }
@@ -178,6 +179,66 @@ class GridLayoutManager {
     return (0, matrix.length);
   }
 
+  static List<DashboardWidget> resolveOverlapsKeeping(
+    DashboardWidget primary,
+    List<DashboardWidget> widgets, {
+    int maxColumns = defaultMaxColumns,
+    int maxRows = defaultMaxRows,
+  }) {
+    if (widgets.isEmpty) return widgets;
+
+    final others = widgets.where((w) => w.id != primary.id).toList();
+    final ordered = [primary, ...others];
+
+    final matrix = createOccupancyMatrix(
+      [],
+      maxColumns: maxColumns,
+      maxRows: maxRows,
+    );
+
+    DashboardWidget placeWidget(
+      DashboardWidget widget,
+      int x,
+      int y,
+    ) {
+      for (int dy = 0; dy < widget.h && (y + dy) < maxRows; dy++) {
+        for (int dx = 0; dx < widget.w && (x + dx) < maxColumns; dx++) {
+          matrix[y + dy][x + dx] = true;
+        }
+      }
+      return widget.copyWith(x: x, y: y);
+    }
+
+    bool canPlaceAt(DashboardWidget widget, int x, int y) {
+      return _canPlaceWidget(matrix, x, y, widget.w, widget.h, maxColumns);
+    }
+
+    (int x, int y) findNextPosition(DashboardWidget widget, int startY) {
+      for (int y = startY; y < maxRows - widget.h + 1; y++) {
+        for (int x = 0; x < maxColumns - widget.w + 1; x++) {
+          if (canPlaceAt(widget, x, y)) {
+            return (x, y);
+          }
+        }
+      }
+      return (0, maxRows - widget.h);
+    }
+
+    final result = <DashboardWidget>[];
+    for (final widget in ordered) {
+      final targetX = widget.x.clamp(0, maxColumns - widget.w);
+      final targetY = widget.y.clamp(0, maxRows - widget.h);
+      if (canPlaceAt(widget, targetX, targetY)) {
+        result.add(placeWidget(widget, targetX, targetY));
+      } else {
+        final (newX, newY) = findNextPosition(widget, targetY);
+        result.add(placeWidget(widget, newX, newY));
+      }
+    }
+
+    return result;
+  }
+
   static int _findNextRowY(List<List<bool>> matrix, int maxColumns) {
     for (int y = 0; y < matrix.length; y++) {
       bool hasOccupied = false;
@@ -219,7 +280,7 @@ class GridLayoutManager {
       if (excludeId != null && other.id == excludeId) {
         continue;
       }
-      
+
       if (_widgetsOverlap(widget, other)) {
         return true;
       }
@@ -233,7 +294,10 @@ class GridLayoutManager {
     final bRight = b.x + b.w;
     final bBottom = b.y + b.h;
 
-    return !(a.x >= bRight || aRight <= b.x || a.y >= bBottom || aBottom <= b.y);
+    return !(a.x >= bRight ||
+        aRight <= b.x ||
+        a.y >= bBottom ||
+        aBottom <= b.y);
   }
 
   static List<DashboardWidget> getWidgetsWithoutId(

@@ -51,6 +51,10 @@ class DatabaseHelper {
     switch (oldVersion) {
       case 1:
         await _migrateFromV1ToV2(db);
+        await _migrateFromV2ToV3(db);
+        break;
+      case 2:
+        await _migrateFromV2ToV3(db);
         break;
       default:
         break;
@@ -62,6 +66,33 @@ class DatabaseHelper {
     await db.execute(DatabaseMigrations.createDashboardWidgetsTable);
   }
 
+  Future<void> _migrateFromV2ToV3(Database db) async {
+    await db.execute(DatabaseMigrations.createAssetDetailsTable);
+    
+    await db.execute('''
+      ALTER TABLE asset_records ADD COLUMN asset_detail_id INTEGER;
+    ''');
+    
+    await db.execute('''
+      CREATE INDEX IF NOT EXISTS idx_asset_details_asset_id ON asset_details(asset_id);
+    ''');
+    await db.execute('''
+      CREATE INDEX IF NOT EXISTS idx_asset_details_detail_type ON asset_details(detail_type);
+    ''');
+    await db.execute('''
+      CREATE INDEX IF NOT EXISTS idx_asset_details_created_at ON asset_details(created_at DESC);
+    ''');
+    await db.execute('''
+      CREATE INDEX IF NOT EXISTS idx_asset_details_asset_created ON asset_details(asset_id, created_at DESC);
+    ''');
+    await db.execute('''
+      CREATE INDEX IF NOT EXISTS idx_asset_records_detail_id ON asset_records(asset_detail_id);
+    ''');
+    await db.execute('''
+      CREATE INDEX IF NOT EXISTS idx_asset_records_detail_date ON asset_records(asset_detail_id, record_date DESC);
+    ''');
+  }
+
   Future<void> _createIndexes(Database db) async {
     await db.execute('''
       CREATE INDEX IF NOT EXISTS idx_asset_records_asset_id ON asset_records(asset_id);
@@ -71,6 +102,24 @@ class DatabaseHelper {
     ''');
     await db.execute('''
       CREATE INDEX IF NOT EXISTS idx_assets_type_id ON assets(type_id);
+    ''');
+    await db.execute('''
+      CREATE INDEX IF NOT EXISTS idx_asset_details_asset_id ON asset_details(asset_id);
+    ''');
+    await db.execute('''
+      CREATE INDEX IF NOT EXISTS idx_asset_details_detail_type ON asset_details(detail_type);
+    ''');
+    await db.execute('''
+      CREATE INDEX IF NOT EXISTS idx_asset_details_created_at ON asset_details(created_at DESC);
+    ''');
+    await db.execute('''
+      CREATE INDEX IF NOT EXISTS idx_asset_details_asset_created ON asset_details(asset_id, created_at DESC);
+    ''');
+    await db.execute('''
+      CREATE INDEX IF NOT EXISTS idx_asset_records_detail_id ON asset_records(asset_detail_id);
+    ''');
+    await db.execute('''
+      CREATE INDEX IF NOT EXISTS idx_asset_records_detail_date ON asset_records(asset_detail_id, record_date DESC);
     ''');
   }
 

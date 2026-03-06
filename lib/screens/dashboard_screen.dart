@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'dart:math' as math;
 import '../providers/dashboard_provider.dart';
 import '../providers/asset_type_provider.dart';
 import '../providers/asset_provider.dart';
@@ -7,8 +8,6 @@ import '../providers/asset_record_provider.dart';
 import '../models/dashboard_model.dart';
 import '../models/asset.dart';
 import '../theme/app_theme.dart';
-import '../utils/grid_layout_manager.dart';
-import '../widgets/dashboard/stat_card.dart';
 import '../widgets/dashboard/chart_card.dart';
 import '../widgets/dashboard/add_widget_dialog.dart';
 import '../widgets/dashboard/widget_config_dialog.dart';
@@ -22,8 +21,7 @@ class DashboardScreen extends StatefulWidget {
 
 class _DashboardScreenState extends State<DashboardScreen> {
   bool _isLoading = true;
-  static const int _gridColumns = 48;
-  static const double _cellSize = 10.0;
+  static const double _cellSize = 12.0;
   static const double _gridPadding = 1.0;
   String? _selectedWidgetId;
 
@@ -41,14 +39,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
       final assetTypeProvider = context.read<AssetTypeProvider>();
       final assetProvider = context.read<AssetProvider>();
       final assetRecordProvider = context.read<AssetRecordProvider>();
-      
+
       await Future.wait([
         dashboardProvider.loadDashboards(),
         assetTypeProvider.loadAssetTypes(),
         assetProvider.loadAssets(),
         assetRecordProvider.loadRecords(),
       ]);
-      
+
       setState(() {
         _isLoading = false;
       });
@@ -75,7 +73,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
     return total;
   }
 
-  Map<String, double> _getAssetDistribution(List<Asset> assets, List<dynamic> assetTypes) {
+  Map<String, double> _getAssetDistribution(
+      List<Asset> assets, List<dynamic> assetTypes) {
     final Map<String, double> distribution = {};
     for (final asset in assets) {
       if (asset.customData != null) {
@@ -83,10 +82,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
           final data = Map<String, dynamic>.from(asset.customData as Map);
           final value = (data['value'] as num?)?.toDouble() ?? 0.0;
           final typeId = asset.typeId;
-          final typeName = assetTypes.firstWhere(
-            (t) => t.id == typeId,
-            orElse: () => assetTypes.first,
-          ).name;
+          final typeName = assetTypes
+              .firstWhere(
+                (t) => t.id == typeId,
+                orElse: () => assetTypes.first,
+              )
+              .name;
           distribution[typeName] = (distribution[typeName] ?? 0) + value;
         } catch (_) {
           continue;
@@ -104,9 +105,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         children: [
           _buildHeader(),
           Expanded(
-            child: _isLoading
-                ? _buildLoadingState()
-                : _buildDashboardContent(),
+            child: _isLoading ? _buildLoadingState() : _buildDashboardContent(),
           ),
         ],
       ),
@@ -137,7 +136,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
               IconButton(
                 icon: Icon(
                   provider.isEditMode ? Icons.visibility : Icons.edit_outlined,
-                  color: provider.isEditMode ? const Color(0xFF6366F1) : const Color(0xFF1E293B),
+                  color: provider.isEditMode
+                      ? const Color(0xFF6366F1)
+                      : const Color(0xFF1E293B),
                 ),
                 onPressed: () {
                   provider.toggleEditMode();
@@ -147,19 +148,21 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 },
                 tooltip: provider.isEditMode ? '查看模式' : '编辑模式',
               ),
-              const SizedBox(width: AppTheme.spacingS),
-              ElevatedButton.icon(
-                onPressed: () => _showAddWidgetDialog(context),
-                icon: const Icon(Icons.add, size: 18),
-                label: const Text('添加'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF6366F1),
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: AppTheme.spacingM,
-                    vertical: AppTheme.spacingS,
+              if (provider.isEditMode) ...[
+                const SizedBox(width: AppTheme.spacingS),
+                ElevatedButton.icon(
+                  onPressed: () => _showAddWidgetDialog(context),
+                  icon: const Icon(Icons.add, size: 18),
+                  label: const Text('添加'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF6366F1),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppTheme.spacingM,
+                      vertical: AppTheme.spacingS,
+                    ),
                   ),
                 ),
-              ),
+              ],
             ],
           ),
         );
@@ -168,12 +171,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Widget _buildDashboardContent() {
-    return Consumer4<DashboardProvider, AssetProvider, AssetTypeProvider, AssetRecordProvider>(
-      builder: (context, dashboardProvider, assetProvider, assetTypeProvider, recordProvider, child) {
+    return Consumer4<DashboardProvider, AssetProvider, AssetTypeProvider,
+        AssetRecordProvider>(
+      builder: (context, dashboardProvider, assetProvider, assetTypeProvider,
+          recordProvider, child) {
         final dashboard = dashboardProvider.currentDashboard;
         final assets = assetProvider.assets;
         final assetTypes = assetTypeProvider.assetTypes;
-        
+
         if (dashboard == null || dashboard.widgets.isEmpty) {
           return _buildEmptyState(dashboardProvider);
         }
@@ -186,7 +191,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           builder: (context, constraints) {
             final availableWidth = constraints.maxWidth;
             final availableHeight = constraints.maxHeight;
-            
+
             return Padding(
               padding: const EdgeInsets.all(16),
               child: _buildGrid(
@@ -214,6 +219,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
     double availableWidth,
     double availableHeight,
   ) {
+    final maxBottomRow = widgets.fold<int>(
+      0,
+      (maxRow, item) => math.max(maxRow, item.y + item.h),
+    );
+    final gridColumns = math.max(1, (availableWidth / _cellSize).floor());
+    final canvasWidth = availableWidth;
+    final canvasHeight = math.max(
+        availableHeight, maxBottomRow * _cellSize + _gridPadding * 2 + 80);
+
     return GestureDetector(
       onTap: () {
         if (isEditMode) {
@@ -236,21 +250,28 @@ class _DashboardScreenState extends State<DashboardScreen> {
             ),
           ],
         ),
-        child: Stack(
-          fit: StackFit.expand,
-          children: [
-            if (isEditMode) _buildGridLines(availableWidth, availableHeight),
-            ...widgets.map((widget) {
-              return _buildWidget(
-                widget,
-                widgets,
-                totalValue,
-                distribution,
-                provider,
-                isEditMode,
-              );
-            }).toList(),
-          ],
+        child: SingleChildScrollView(
+          child: SizedBox(
+            width: canvasWidth,
+            height: canvasHeight,
+            child: Stack(
+              clipBehavior: Clip.none,
+              children: [
+                if (isEditMode) _buildGridLines(canvasWidth, canvasHeight),
+                ...widgets.map((widget) {
+                  return _buildWidget(
+                    widget,
+                    widgets,
+                    totalValue,
+                    distribution,
+                    provider,
+                    isEditMode,
+                    gridColumns,
+                  );
+                }),
+              ],
+            ),
+          ),
         ),
       ),
     );
@@ -270,25 +291,23 @@ class _DashboardScreenState extends State<DashboardScreen> {
     Map<String, double> distribution,
     DashboardProvider provider,
     bool isEditMode,
+    int gridColumns,
   ) {
     final isSelected = _selectedWidgetId == widget.id;
     final left = widget.x * _cellSize + _gridPadding;
     final top = widget.y * _cellSize + _gridPadding;
-    final width = widget.w * _cellSize - _gridPadding * 2;
-    final height = widget.h * _cellSize - _gridPadding * 2;
 
     return Positioned(
       left: left,
       top: top,
-      width: width,
-      height: height,
       child: _DraggableResizableWidget(
         widget: widget,
         allWidgets: allWidgets,
         isSelected: isSelected,
         isEditMode: isEditMode,
         cellSize: _cellSize,
-        gridColumns: _gridColumns,
+        gridPadding: _gridPadding,
+        gridColumns: gridColumns,
         onSelect: () {
           if (isEditMode) {
             setState(() {
@@ -296,13 +315,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
             });
           }
         },
-        onPositionChanged: (newX, newY) {
-          final updatedWidget = widget.copyWith(x: newX, y: newY);
-          provider.updateWidget(updatedWidget);
-        },
-        onSizeChanged: (newW, newH) {
-          final updatedWidget = widget.copyWith(w: newW, h: newH);
-          provider.updateWidget(updatedWidget);
+        onBoundsChanged: (newX, newY, newW, newH) {
+          provider.updateWidget(
+            widget.copyWith(x: newX, y: newY, w: newW, h: newH),
+            persist: true,
+            resolveOverlap: true,
+            maxColumns: gridColumns,
+          );
         },
         child: _buildWidgetContent(widget, totalValue, distribution, provider),
       ),
@@ -310,7 +329,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Widget _buildWidgetContent(
-    DashboardWidget widget, 
+    DashboardWidget widget,
     double totalValue,
     Map<String, double> distribution,
     DashboardProvider provider,
@@ -321,7 +340,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       case WidgetType.chart:
         final chartType = widget.config['chartType'] as String? ?? 'pie';
         final List<ChartData> chartData = [];
-        
+
         if (chartType == 'pie') {
           distribution.forEach((key, value) {
             chartData.add(ChartData(key, value));
@@ -332,7 +351,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           chartData.add(ChartData('3月', totalValue * 1.1));
           chartData.add(ChartData('4月', totalValue));
         }
-        
+
         return ChartCard(
           title: widget.title,
           chartType: chartType,
@@ -362,7 +381,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
     }
   }
 
-  Widget _buildFallbackWidget(DashboardWidget widget, DashboardProvider provider) {
+  Widget _buildFallbackWidget(
+      DashboardWidget widget, DashboardProvider provider) {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -399,12 +419,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     children: [
                       InkWell(
                         onTap: () => _showConfigDialog(context, widget),
-                        child: const Icon(Icons.edit_outlined, size: 18, color: Color(0xFF9CA3AF)),
+                        child: const Icon(Icons.edit_outlined,
+                            size: 18, color: Color(0xFF9CA3AF)),
                       ),
                       const SizedBox(width: 8),
                       InkWell(
                         onTap: () => provider.deleteWidget(widget.id),
-                        child: const Icon(Icons.delete_outline, size: 18, color: Color(0xFF9CA3AF)),
+                        child: const Icon(Icons.delete_outline,
+                            size: 18, color: Color(0xFF9CA3AF)),
                       ),
                     ],
                   ),
@@ -416,11 +438,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const Icon(Icons.widgets_outlined, size: 32, color: Color(0xFF9CA3AF)),
+                    const Icon(Icons.widgets_outlined,
+                        size: 32, color: Color(0xFF9CA3AF)),
                     const SizedBox(height: 8),
                     Text(
                       '未知组件类型: ${widget.type.name}',
-                      style: const TextStyle(fontSize: 12, color: Color(0xFF9CA3AF)),
+                      style: const TextStyle(
+                          fontSize: 12, color: Color(0xFF9CA3AF)),
                     ),
                   ],
                 ),
@@ -432,7 +456,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  Widget _buildStatCard(DashboardWidget widget, DashboardProvider provider, double totalValue) {
+  Widget _buildStatCard(
+      DashboardWidget widget, DashboardProvider provider, double totalValue) {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -470,12 +495,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     children: [
                       InkWell(
                         onTap: () => _showConfigDialog(context, widget),
-                        child: const Icon(Icons.edit_outlined, size: 18, color: Color(0xFF9CA3AF)),
+                        child: const Icon(Icons.edit_outlined,
+                            size: 18, color: Color(0xFF9CA3AF)),
                       ),
                       const SizedBox(width: 8),
                       InkWell(
                         onTap: () => provider.deleteWidget(widget.id),
-                        child: const Icon(Icons.delete_outline, size: 18, color: Color(0xFF9CA3AF)),
+                        child: const Icon(Icons.delete_outline,
+                            size: 18, color: Color(0xFF9CA3AF)),
                       ),
                     ],
                   ),
@@ -538,7 +565,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         onTap: () => _showConfigDialog(context, widget),
                         child: Padding(
                           padding: const EdgeInsets.all(4),
-                          child: Icon(Icons.edit_outlined, size: 18, color: Colors.grey[600]),
+                          child: Icon(Icons.edit_outlined,
+                              size: 18, color: Colors.grey[600]),
                         ),
                       ),
                       const SizedBox(width: 4),
@@ -546,7 +574,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         onTap: () => provider.deleteWidget(widget.id),
                         child: Padding(
                           padding: const EdgeInsets.all(4),
-                          child: Icon(Icons.delete_outline, size: 18, color: Colors.grey[600]),
+                          child: Icon(Icons.delete_outline,
+                              size: 18, color: Colors.grey[600]),
                         ),
                       ),
                     ],
@@ -565,8 +594,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text('资产 ${index + 1}', style: TextStyle(fontSize: 13, color: Colors.grey[600])),
-                      Text('¥ ${(index + 1) * 10000}', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF1E293B))),
+                      Text('资产 ${index + 1}',
+                          style:
+                              TextStyle(fontSize: 13, color: Colors.grey[600])),
+                      Text('¥ ${(index + 1) * 10000}',
+                          style: const TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                              color: Color(0xFF1E293B))),
                     ],
                   ),
                 );
@@ -601,7 +636,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
               children: [
                 Text(
                   widget.title,
-                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Color(0xFF1E293B)),
+                  style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF1E293B)),
                 ),
                 if (provider.isEditMode)
                   Row(
@@ -609,12 +647,18 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     children: [
                       InkWell(
                         onTap: () => _showConfigDialog(context, widget),
-                        child: Padding(padding: const EdgeInsets.all(4), child: Icon(Icons.edit_outlined, size: 18, color: Colors.grey[600])),
+                        child: Padding(
+                            padding: const EdgeInsets.all(4),
+                            child: Icon(Icons.edit_outlined,
+                                size: 18, color: Colors.grey[600])),
                       ),
                       const SizedBox(width: 4),
                       InkWell(
                         onTap: () => provider.deleteWidget(widget.id),
-                        child: Padding(padding: const EdgeInsets.all(4), child: Icon(Icons.delete_outline, size: 18, color: Colors.grey[600])),
+                        child: Padding(
+                            padding: const EdgeInsets.all(4),
+                            child: Icon(Icons.delete_outline,
+                                size: 18, color: Colors.grey[600])),
                       ),
                     ],
                   ),
@@ -636,14 +680,20 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           value: 0.75,
                           strokeWidth: 8,
                           backgroundColor: const Color(0xFFF5F7FA),
-                          valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF6366F1)),
+                          valueColor: const AlwaysStoppedAnimation<Color>(
+                              Color(0xFF6366F1)),
                         ),
                       ),
-                      const Text('75%', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: Color(0xFF1E293B))),
+                      const Text('75%',
+                          style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w700,
+                              color: Color(0xFF1E293B))),
                     ],
                   ),
                   const SizedBox(height: AppTheme.spacingS),
-                  Text('健康度', style: TextStyle(fontSize: 12, color: Colors.grey[600])),
+                  Text('健康度',
+                      style: TextStyle(fontSize: 12, color: Colors.grey[600])),
                 ],
               ),
             ),
@@ -653,7 +703,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  Widget _buildProgressCard(DashboardWidget widget, DashboardProvider provider, double totalValue) {
+  Widget _buildProgressCard(
+      DashboardWidget widget, DashboardProvider provider, double totalValue) {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -690,19 +741,22 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     children: [
                       InkWell(
                         onTap: () => _showConfigDialog(context, widget),
-                        child: const Icon(Icons.edit_outlined, size: 18, color: Color(0xFF9CA3AF)),
+                        child: const Icon(Icons.edit_outlined,
+                            size: 18, color: Color(0xFF9CA3AF)),
                       ),
                       const SizedBox(width: 8),
                       InkWell(
                         onTap: () => provider.deleteWidget(widget.id),
-                        child: const Icon(Icons.delete_outline, size: 18, color: Color(0xFF9CA3AF)),
+                        child: const Icon(Icons.delete_outline,
+                            size: 18, color: Color(0xFF9CA3AF)),
                       ),
                     ],
                   ),
               ],
             ),
             const SizedBox(height: 12),
-            const Text('目标完成率', style: TextStyle(fontSize: 12, color: Color(0xFF6B7280))),
+            const Text('目标完成率',
+                style: TextStyle(fontSize: 12, color: Color(0xFF6B7280))),
             const SizedBox(height: 8),
             Expanded(
               child: Stack(
@@ -714,11 +768,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     child: LinearProgressIndicator(
                       value: 0.72,
                       backgroundColor: const Color(0xFFF5F7FA),
-                      valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF10B981)),
+                      valueColor: const AlwaysStoppedAnimation<Color>(
+                          Color(0xFF10B981)),
                       borderRadius: BorderRadius.circular(12),
                     ),
                   ),
-                  const Text('72%', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.white)),
+                  const Text('72%',
+                      style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.white)),
                 ],
               ),
             ),
@@ -728,7 +787,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  Widget _buildKPICard(DashboardWidget widget, DashboardProvider provider, double totalValue) {
+  Widget _buildKPICard(
+      DashboardWidget widget, DashboardProvider provider, double totalValue) {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -765,12 +825,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     children: [
                       InkWell(
                         onTap: () => _showConfigDialog(context, widget),
-                        child: const Icon(Icons.edit_outlined, size: 18, color: Color(0xFF9CA3AF)),
+                        child: const Icon(Icons.edit_outlined,
+                            size: 18, color: Color(0xFF9CA3AF)),
                       ),
                       const SizedBox(width: 8),
                       InkWell(
                         onTap: () => provider.deleteWidget(widget.id),
-                        child: const Icon(Icons.delete_outline, size: 18, color: Color(0xFF9CA3AF)),
+                        child: const Icon(Icons.delete_outline,
+                            size: 18, color: Color(0xFF9CA3AF)),
                       ),
                     ],
                   ),
@@ -793,9 +855,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   const SizedBox(height: 8),
                   Row(
                     children: [
-                      Icon(Icons.arrow_upward, size: 16, color: const Color(0xFF10B981)),
+                      Icon(Icons.arrow_upward,
+                          size: 16, color: const Color(0xFF10B981)),
                       const SizedBox(width: 4),
-                      const Text('+12.5%', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Color(0xFF10B981))),
+                      const Text('+12.5%',
+                          style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                              color: Color(0xFF10B981))),
                     ],
                   ),
                 ],
@@ -807,7 +874,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  Widget _buildTimelineCard(DashboardWidget widget, DashboardProvider provider) {
+  Widget _buildTimelineCard(
+      DashboardWidget widget, DashboardProvider provider) {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -844,12 +912,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     children: [
                       InkWell(
                         onTap: () => _showConfigDialog(context, widget),
-                        child: const Icon(Icons.edit_outlined, size: 18, color: Color(0xFF9CA3AF)),
+                        child: const Icon(Icons.edit_outlined,
+                            size: 18, color: Color(0xFF9CA3AF)),
                       ),
                       const SizedBox(width: 8),
                       InkWell(
                         onTap: () => provider.deleteWidget(widget.id),
-                        child: const Icon(Icons.delete_outline, size: 18, color: Color(0xFF9CA3AF)),
+                        child: const Icon(Icons.delete_outline,
+                            size: 18, color: Color(0xFF9CA3AF)),
                       ),
                     ],
                   ),
@@ -894,7 +964,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ),
           Text(
             status,
-            style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: color),
+            style: TextStyle(
+                fontSize: 12, fontWeight: FontWeight.w500, color: color),
           ),
         ],
       ),
@@ -938,12 +1009,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     children: [
                       InkWell(
                         onTap: () => _showConfigDialog(context, widget),
-                        child: const Icon(Icons.edit_outlined, size: 18, color: Color(0xFF9CA3AF)),
+                        child: const Icon(Icons.edit_outlined,
+                            size: 18, color: Color(0xFF9CA3AF)),
                       ),
                       const SizedBox(width: 8),
                       InkWell(
                         onTap: () => provider.deleteWidget(widget.id),
-                        child: const Icon(Icons.delete_outline, size: 18, color: Color(0xFF9CA3AF)),
+                        child: const Icon(Icons.delete_outline,
+                            size: 18, color: Color(0xFF9CA3AF)),
                       ),
                     ],
                   ),
@@ -964,7 +1037,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   final intensity = (index % 5) / 5;
                   return Container(
                     decoration: BoxDecoration(
-                      color: const Color(0xFF6366F1).withValues(alpha: 0.1 + intensity * 0.7),
+                      color: const Color(0xFF6366F1)
+                          .withValues(alpha: 0.1 + intensity * 0.7),
                       borderRadius: BorderRadius.circular(6),
                     ),
                   );
@@ -977,7 +1051,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  Widget _buildCalendarCard(DashboardWidget widget, DashboardProvider provider) {
+  Widget _buildCalendarCard(
+      DashboardWidget widget, DashboardProvider provider) {
     final now = DateTime.now();
     return Container(
       decoration: BoxDecoration(
@@ -1015,12 +1090,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     children: [
                       InkWell(
                         onTap: () => _showConfigDialog(context, widget),
-                        child: const Icon(Icons.edit_outlined, size: 18, color: Color(0xFF9CA3AF)),
+                        child: const Icon(Icons.edit_outlined,
+                            size: 18, color: Color(0xFF9CA3AF)),
                       ),
                       const SizedBox(width: 8),
                       InkWell(
                         onTap: () => provider.deleteWidget(widget.id),
-                        child: const Icon(Icons.delete_outline, size: 18, color: Color(0xFF9CA3AF)),
+                        child: const Icon(Icons.delete_outline,
+                            size: 18, color: Color(0xFF9CA3AF)),
                       ),
                     ],
                   ),
@@ -1049,7 +1126,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   return Container(
                     margin: const EdgeInsets.all(2),
                     decoration: BoxDecoration(
-                      color: isToday ? const Color(0xFF6366F1) : Colors.transparent,
+                      color: isToday
+                          ? const Color(0xFF6366F1)
+                          : Colors.transparent,
                       borderRadius: BorderRadius.circular(6),
                     ),
                     child: Center(
@@ -1057,8 +1136,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         day > 0 && day <= 31 ? day.toString() : '',
                         style: TextStyle(
                           fontSize: 14,
-                          color: isToday ? Colors.white : const Color(0xFF1E293B),
-                          fontWeight: isToday ? FontWeight.w600 : FontWeight.normal,
+                          color:
+                              isToday ? Colors.white : const Color(0xFF1E293B),
+                          fontWeight:
+                              isToday ? FontWeight.w600 : FontWeight.normal,
                         ),
                       ),
                     ),
@@ -1109,12 +1190,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     children: [
                       InkWell(
                         onTap: () => _showConfigDialog(context, widget),
-                        child: const Icon(Icons.edit_outlined, size: 18, color: Color(0xFF9CA3AF)),
+                        child: const Icon(Icons.edit_outlined,
+                            size: 18, color: Color(0xFF9CA3AF)),
                       ),
                       const SizedBox(width: 8),
                       InkWell(
                         onTap: () => provider.deleteWidget(widget.id),
-                        child: const Icon(Icons.delete_outline, size: 18, color: Color(0xFF9CA3AF)),
+                        child: const Icon(Icons.delete_outline,
+                            size: 18, color: Color(0xFF9CA3AF)),
                       ),
                     ],
                   ),
@@ -1158,20 +1241,27 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 ),
               ],
             ),
-            child: const Icon(Icons.dashboard_customize_outlined, size: 64, color: Color(0xFF6366F1)),
+            child: const Icon(Icons.dashboard_customize_outlined,
+                size: 64, color: Color(0xFF6366F1)),
           ),
           const SizedBox(height: AppTheme.spacingL),
-          const Text('自定义你的仪表盘', style: TextStyle(fontSize: 24, fontWeight: FontWeight.w700, color: Color(0xFF1E293B))),
+          const Text('自定义你的仪表盘',
+              style: TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.w700,
+                  color: Color(0xFF1E293B))),
           const SizedBox(height: AppTheme.spacingS),
-          Text('添加组件来构建你的个人仪表盘', style: TextStyle(fontSize: 16, color: Colors.grey[600])),
+          Text('添加组件来构建你的个人仪表盘',
+              style: TextStyle(fontSize: 16, color: Colors.grey[600])),
           const SizedBox(height: AppTheme.spacingXL),
           ElevatedButton.icon(
-            onPressed: () => _showAddWidgetDialog(context),
+            onPressed: () => _showAddWidgetDialog(context, autoEnterEditMode: true),
             icon: const Icon(Icons.add),
             label: const Text('添加第一个组件'),
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFF6366F1),
-              padding: const EdgeInsets.symmetric(horizontal: AppTheme.spacingXL, vertical: AppTheme.spacingM),
+              padding: const EdgeInsets.symmetric(
+                  horizontal: AppTheme.spacingXL, vertical: AppTheme.spacingM),
             ),
           ),
         ],
@@ -1197,21 +1287,37 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 ),
               ],
             ),
-            child: const CircularProgressIndicator(strokeWidth: 3, valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF6366F1))),
+            child: const CircularProgressIndicator(
+                strokeWidth: 3,
+                valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF6366F1))),
           ),
           const SizedBox(height: AppTheme.spacingM),
-          const Text('正在加载数据...', style: TextStyle(fontSize: 16, color: Color(0xFF6B7280), fontWeight: FontWeight.w500)),
+          const Text('正在加载数据...',
+              style: TextStyle(
+                  fontSize: 16,
+                  color: Color(0xFF6B7280),
+                  fontWeight: FontWeight.w500)),
         ],
       ),
     );
   }
 
-  void _showAddWidgetDialog(BuildContext context) {
+  void _showAddWidgetDialog(BuildContext context, {bool autoEnterEditMode = false}) {
+    final width = MediaQuery.of(context).size.width;
+    final availableWidth = math.max(0.0, width - 32.0);
+    final gridColumns = math.max(1, (availableWidth / _cellSize).floor());
     showDialog(
       context: context,
       builder: (context) => AddWidgetDialog(
         onAdd: (widget) {
-          context.read<DashboardProvider>().addWidget(widget);
+          final provider = context.read<DashboardProvider>();
+          provider.addWidget(
+                widget,
+                maxColumns: gridColumns,
+              );
+          if (autoEnterEditMode && !provider.isEditMode) {
+            provider.toggleEditMode();
+          }
         },
       ),
     );
@@ -1243,10 +1349,10 @@ class _DraggableResizableWidget extends StatefulWidget {
   final bool isSelected;
   final bool isEditMode;
   final double cellSize;
+  final double gridPadding;
   final int gridColumns;
   final VoidCallback onSelect;
-  final Function(int, int) onPositionChanged;
-  final Function(int, int) onSizeChanged;
+  final Function(int, int, int, int) onBoundsChanged;
   final Widget child;
 
   const _DraggableResizableWidget({
@@ -1255,15 +1361,16 @@ class _DraggableResizableWidget extends StatefulWidget {
     required this.isSelected,
     required this.isEditMode,
     required this.cellSize,
+    required this.gridPadding,
     required this.gridColumns,
     required this.onSelect,
-    required this.onPositionChanged,
-    required this.onSizeChanged,
+    required this.onBoundsChanged,
     required this.child,
   });
 
   @override
-  State<_DraggableResizableWidget> createState() => _DraggableResizableWidgetState();
+  State<_DraggableResizableWidget> createState() =>
+      _DraggableResizableWidgetState();
 }
 
 class _DraggableResizableWidgetState extends State<_DraggableResizableWidget> {
@@ -1276,107 +1383,138 @@ class _DraggableResizableWidgetState extends State<_DraggableResizableWidget> {
   int _initialGridY = 0;
   int _initialGridW = 0;
   int _initialGridH = 0;
-  int _lastX = 0;
-  int _lastY = 0;
-  int _lastW = 0;
-  int _lastH = 0;
+  late int _draftX;
+  late int _draftY;
+  late int _draftW;
+  late int _draftH;
 
   @override
   void initState() {
     super.initState();
-    _lastX = widget.widget.x;
-    _lastY = widget.widget.y;
-    _lastW = widget.widget.w;
-    _lastH = widget.widget.h;
+    _syncDraftFromWidget();
   }
 
-  bool _checkOverlap(int x, int y, int w, int h) {
-    final testWidget = widget.widget.copyWith(x: x, y: y, w: w, h: h);
-    return GridLayoutManager.checkOverlap(
-      testWidget,
-      widget.allWidgets,
-      excludeId: widget.widget.id,
-    );
+  @override
+  void didUpdateWidget(covariant _DraggableResizableWidget oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (!_isDragging && !_isResizing) {
+      _syncDraftFromWidget();
+    }
+  }
+
+  void _syncDraftFromWidget() {
+    _draftX = widget.widget.x;
+    _draftY = widget.widget.y;
+    _draftW = widget.widget.w;
+    _draftH = widget.widget.h;
   }
 
   @override
   Widget build(BuildContext context) {
+    final dx = (_draftX - widget.widget.x) * widget.cellSize;
+    final dy = (_draftY - widget.widget.y) * widget.cellSize;
+    final displayWidth = _draftW * widget.cellSize - widget.gridPadding * 2;
+    final displayHeight = _draftH * widget.cellSize - widget.gridPadding * 2;
+
     return Stack(
       clipBehavior: Clip.none,
       children: [
-        GestureDetector(
-          onTap: widget.isEditMode ? widget.onSelect : null,
-          child: Listener(
-            onPointerDown: widget.isEditMode && widget.isSelected && !_isResizing
-                ? (details) {
+        Listener(
+          onPointerDown: widget.isEditMode && !_isResizing
+              ? (details) {
+                  final local = details.localPosition;
+                  final nearLeft = local.dx <= 20;
+                  final nearRight = local.dx >= displayWidth - 20;
+                  final nearTop = local.dy <= 20;
+                  final nearBottom = local.dy >= displayHeight - 20;
+                  final nearResizeHandle =
+                      (nearLeft || nearRight) && (nearTop || nearBottom);
+                  if (widget.isSelected && nearResizeHandle) {
+                    return;
+                  }
+                  if (widget.isSelected) {
                     setState(() {
                       _isDragging = true;
                       _startX = details.position.dx;
                       _startY = details.position.dy;
-                      _initialGridX = widget.widget.x;
-                      _initialGridY = widget.widget.y;
+                      _initialGridX = _draftX;
+                      _initialGridY = _draftY;
                     });
+                  } else {
+                    widget.onSelect();
                   }
-                : null,
-            onPointerMove: _isDragging
-                ? (details) {
-                    final deltaX = details.position.dx - _startX;
-                    final deltaY = details.position.dy - _startY;
-                    
-                    final gridDeltaX = (deltaX / widget.cellSize).round();
-                    final gridDeltaY = (deltaY / widget.cellSize).round();
-                    
-                    int newX = (_initialGridX + gridDeltaX).clamp(0, widget.gridColumns - widget.widget.w);
-                    int newY = (_initialGridY + gridDeltaY).clamp(0, 1000);
-                    
-                    if (_checkOverlap(newX, newY, widget.widget.w, widget.widget.h)) {
-                      return;
-                    }
-                    
-                    if (newX != _lastX || newY != _lastY) {
-                      _lastX = newX;
-                      _lastY = newY;
-                      widget.onPositionChanged(newX, newY);
-                    }
-                  }
-                : null,
-            onPointerUp: _isDragging
-                ? (details) {
-                    setState(() {
-                      _isDragging = false;
-                    });
-                  }
-                : null,
-            onPointerCancel: _isDragging
-                ? (details) {
-                    setState(() {
-                      _isDragging = false;
-                    });
-                  }
-                : null,
-            child: Transform(
-              transform: _isDragging 
-                  ? (Matrix4.identity()..scale(1.02))
-                  : Matrix4.identity(),
-              alignment: Alignment.center,
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 150),
+                }
+              : null,
+          onPointerMove: _isDragging
+              ? (details) {
+                  final deltaX = details.position.dx - _startX;
+                  final deltaY = details.position.dy - _startY;
+
+                  final gridDeltaX = (deltaX / widget.cellSize).round();
+                  final gridDeltaY = (deltaY / widget.cellSize).round();
+
+                  final newX = (_initialGridX + gridDeltaX)
+                      .clamp(0, widget.gridColumns - _draftW);
+                  final newY = (_initialGridY + gridDeltaY).clamp(0, 1000);
+
+                  setState(() {
+                    _draftX = newX;
+                    _draftY = newY;
+                  });
+                }
+              : null,
+          onPointerUp: _isDragging
+              ? (details) {
+                  _finishDrag();
+                }
+              : null,
+          onPointerCancel: _isDragging
+              ? (details) {
+                  _finishDrag();
+                }
+              : null,
+          child: Transform(
+            transform: Matrix4.identity()
+              ..translateByDouble(dx, dy, 0, 1)
+              ..scaleByDouble(
+                  _isDragging ? 1.02 : 1.0, _isDragging ? 1.02 : 1.0, 1, 1),
+            alignment: Alignment.topLeft,
+            child: SizedBox(
+              width: displayWidth,
+              height: displayHeight,
+              child: Container(
                 decoration: BoxDecoration(
                   border: widget.isSelected && widget.isEditMode
                       ? Border.all(color: const Color(0xFF6366F1), width: 2)
                       : null,
                   borderRadius: BorderRadius.circular(AppTheme.radiusXL),
+                  color: Colors.white,
                   boxShadow: _isDragging
                       ? [
                           BoxShadow(
-                            color: const Color(0xFF6366F1).withValues(alpha: 0.3),
+                            color:
+                                const Color(0xFF6366F1).withValues(alpha: 0.3),
                             blurRadius: 20,
                             offset: const Offset(0, 8),
                           ),
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.08),
+                            blurRadius: 12,
+                            offset: const Offset(0, 4),
+                          ),
                         ]
-                      : [],
+                      : [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.06),
+                            blurRadius: 8,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
                 ),
-                child: widget.child,
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(AppTheme.radiusXL),
+                  child: widget.child,
+                ),
               ),
             ),
           ),
@@ -1388,19 +1526,19 @@ class _DraggableResizableWidgetState extends State<_DraggableResizableWidget> {
 
   List<Widget> _buildResizeHandles() {
     return [
-      _buildResizeHandle('top-left', Alignment.topLeft, -1, -1),
-      _buildResizeHandle('top-right', Alignment.topRight, 1, -1),
-      _buildResizeHandle('bottom-left', Alignment.bottomLeft, -1, 1),
-      _buildResizeHandle('bottom-right', Alignment.bottomRight, 1, 1),
+      _buildResizeHandle('top-left', Alignment.topLeft),
+      _buildResizeHandle('top-right', Alignment.topRight),
+      _buildResizeHandle('bottom-left', Alignment.bottomLeft),
+      _buildResizeHandle('bottom-right', Alignment.bottomRight),
     ];
   }
 
-  Widget _buildResizeHandle(String handleName, Alignment alignment, int dx, int dy) {
+  Widget _buildResizeHandle(String handleName, Alignment alignment) {
     return Positioned(
-      left: alignment.x == -1 ? -5 : null,
-      right: alignment.x == 1 ? -5 : null,
-      top: alignment.y == -1 ? -5 : null,
-      bottom: alignment.y == 1 ? -5 : null,
+      left: alignment.x == -1 ? -10 : null,
+      right: alignment.x == 1 ? -10 : null,
+      top: alignment.y == -1 ? -10 : null,
+      bottom: alignment.y == 1 ? -10 : null,
       child: MouseRegion(
         cursor: _getCursorForHandle(handleName),
         child: Listener(
@@ -1411,93 +1549,117 @@ class _DraggableResizableWidgetState extends State<_DraggableResizableWidget> {
               _activeResizeHandle = handleName;
               _startX = details.position.dx;
               _startY = details.position.dy;
-              _initialGridX = widget.widget.x;
-              _initialGridY = widget.widget.y;
-              _initialGridW = widget.widget.w;
-              _initialGridH = widget.widget.h;
+              _initialGridX = _draftX;
+              _initialGridY = _draftY;
+              _initialGridW = _draftW;
+              _initialGridH = _draftH;
             });
           },
           onPointerMove: _isResizing && _activeResizeHandle == handleName
               ? (details) {
                   final deltaX = details.position.dx - _startX;
                   final deltaY = details.position.dy - _startY;
-                  
+
                   final gridDeltaX = (deltaX / widget.cellSize).round();
                   final gridDeltaY = (deltaY / widget.cellSize).round();
-                  
+
                   int newX = _initialGridX;
                   int newY = _initialGridY;
                   int newW = _initialGridW;
                   int newH = _initialGridH;
-                  
-                  if (handleName.contains('left')) {
-                    final delta = gridDeltaX;
-                    newX = (_initialGridX + delta).clamp(0, _initialGridX + _initialGridW - 1);
-                    newW = (_initialGridW - delta).clamp(1, widget.gridColumns - newX);
+
+                  if (handleName == 'top-left') {
+                    newX = _initialGridX + gridDeltaX;
+                    newY = _initialGridY + gridDeltaY;
+                    newW = _initialGridW - gridDeltaX;
+                    newH = _initialGridH - gridDeltaY;
+                  } else if (handleName == 'top-right') {
+                    newY = _initialGridY + gridDeltaY;
+                    newW = _initialGridW + gridDeltaX;
+                    newH = _initialGridH - gridDeltaY;
+                  } else if (handleName == 'bottom-left') {
+                    newX = _initialGridX + gridDeltaX;
+                    newW = _initialGridW - gridDeltaX;
+                    newH = _initialGridH + gridDeltaY;
+                  } else if (handleName == 'bottom-right') {
+                    newW = _initialGridW + gridDeltaX;
+                    newH = _initialGridH + gridDeltaY;
                   }
-                  if (handleName.contains('right')) {
-                    newW = (_initialGridW + gridDeltaX).clamp(1, widget.gridColumns - _initialGridX);
-                  }
-                  if (handleName.contains('top')) {
-                    final delta = gridDeltaY;
-                    newY = (_initialGridY + delta).clamp(0, _initialGridY + _initialGridH - 1);
-                    newH = (_initialGridH - delta).clamp(1, 1000);
-                  }
-                  if (handleName.contains('bottom')) {
-                    newH = (_initialGridH + gridDeltaY).clamp(1, 1000);
-                  }
-                  
-                  if (_checkOverlap(newX, newY, newW, newH)) {
-                    return;
-                  }
-                  
-                  if (newX != _lastX || newY != _lastY) {
-                    _lastX = newX;
-                    _lastY = newY;
-                    widget.onPositionChanged(newX, newY);
-                  }
-                  if (newW != _lastW || newH != _lastH) {
-                    _lastW = newW;
-                    _lastH = newH;
-                    widget.onSizeChanged(newW, newH);
-                  }
+
+                  newX = newX.clamp(0, widget.gridColumns - 1);
+                  newY = newY.clamp(0, 1000);
+                  newW = newW.clamp(2, widget.gridColumns - newX);
+                  newH = newH.clamp(2, 1000);
+
+                  setState(() {
+                    _draftX = newX;
+                    _draftY = newY;
+                    _draftW = newW;
+                    _draftH = newH;
+                  });
                 }
               : null,
           onPointerUp: _isResizing && _activeResizeHandle == handleName
               ? (details) {
-                  setState(() {
-                    _isResizing = false;
-                    _activeResizeHandle = null;
-                  });
+                  _finishResize();
                 }
               : null,
           onPointerCancel: _isResizing && _activeResizeHandle == handleName
               ? (details) {
-                  setState(() {
-                    _isResizing = false;
-                    _activeResizeHandle = null;
-                  });
+                  _finishResize();
                 }
               : null,
-          child: Container(
-            width: 10,
-            height: 10,
-            decoration: BoxDecoration(
-              color: const Color(0xFF6366F1),
-              shape: BoxShape.circle,
-              border: Border.all(color: Colors.white, width: 2),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.3),
-                  blurRadius: 4,
-                  offset: const Offset(0, 2),
+          child: SizedBox(
+            width: 24,
+            height: 24,
+            child: Center(
+              child: Container(
+                width: 12,
+                height: 12,
+                decoration: BoxDecoration(
+                  color: const Color(0xFF6366F1),
+                  shape: BoxShape.circle,
+                  border: Border.all(color: Colors.white, width: 2),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.3),
+                      blurRadius: 4,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
                 ),
-              ],
+              ),
             ),
           ),
         ),
       ),
     );
+  }
+
+  void _finishDrag() {
+    final changed = _draftX != widget.widget.x || _draftY != widget.widget.y;
+    setState(() {
+      _isDragging = false;
+    });
+    if (changed) {
+      widget.onBoundsChanged(_draftX, _draftY, _draftW, _draftH);
+    }
+  }
+
+  void _finishResize() {
+    final positionChanged =
+        _draftX != widget.widget.x || _draftY != widget.widget.y;
+    final sizeChanged =
+        _draftW != widget.widget.w || _draftH != widget.widget.h;
+
+    setState(() {
+      _isResizing = false;
+      _activeResizeHandle = null;
+    });
+
+    if (positionChanged || sizeChanged) {
+      widget.onBoundsChanged(_draftX, _draftY, _draftW, _draftH);
+    }
   }
 
   MouseCursor _getCursorForHandle(String handleName) {

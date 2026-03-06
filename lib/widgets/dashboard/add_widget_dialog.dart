@@ -163,35 +163,35 @@ class _AddWidgetDialogState extends State<AddWidgetDialog> {
       return;
     }
 
-    int defaultW = 12;
-    int defaultH = 6;
+    int defaultW = 16;
+    int defaultH = 10;
     if (_selectedType == WidgetType.chart) {
-      defaultW = 18;
-      defaultH = 12;
+      defaultW = 24;
+      defaultH = 18;
     } else if (_selectedType == WidgetType.table) {
       defaultW = 36;
-      defaultH = 12;
+      defaultH = 20;
     } else if (_selectedType == WidgetType.gauge) {
-      defaultW = 9;
-      defaultH = 9;
+      defaultW = 12;
+      defaultH = 12;
     } else if (_selectedType == WidgetType.progress) {
-      defaultW = 18;
-      defaultH = 6;
+      defaultW = 20;
+      defaultH = 8;
     } else if (_selectedType == WidgetType.kpi) {
-      defaultW = 9;
-      defaultH = 6;
+      defaultW = 12;
+      defaultH = 8;
     } else if (_selectedType == WidgetType.timeline) {
       defaultW = 24;
-      defaultH = 12;
+      defaultH = 16;
     } else if (_selectedType == WidgetType.heatmap) {
-      defaultW = 18;
-      defaultH = 12;
+      defaultW = 20;
+      defaultH = 16;
     } else if (_selectedType == WidgetType.calendar) {
-      defaultW = 18;
-      defaultH = 15;
+      defaultW = 20;
+      defaultH = 24;
     } else if (_selectedType == WidgetType.note) {
-      defaultW = 12;
-      defaultH = 9;
+      defaultW = 16;
+      defaultH = 12;
     }
 
     final newWidget = DashboardWidget(

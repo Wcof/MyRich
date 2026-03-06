@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'data_source/data_source_config.dart';
 
 enum WidgetType {
   stat,
@@ -22,6 +23,8 @@ class DashboardWidget {
   final int w;
   final int h;
   final Map<String, dynamic> config;
+  final DataSourceConfig? dataSource;
+  final List<FieldMapping>? fieldMappings;
 
   DashboardWidget({
     required this.id,
@@ -32,6 +35,8 @@ class DashboardWidget {
     required this.w,
     required this.h,
     this.config = const {},
+    this.dataSource,
+    this.fieldMappings,
   });
 
   DashboardWidget copyWith({
@@ -43,6 +48,8 @@ class DashboardWidget {
     int? w,
     int? h,
     Map<String, dynamic>? config,
+    DataSourceConfig? dataSource,
+    List<FieldMapping>? fieldMappings,
   }) {
     return DashboardWidget(
       id: id ?? this.id,
@@ -53,6 +60,8 @@ class DashboardWidget {
       w: w ?? this.w,
       h: h ?? this.h,
       config: config ?? this.config,
+      dataSource: dataSource ?? this.dataSource,
+      fieldMappings: fieldMappings ?? this.fieldMappings,
     );
   }
 
@@ -66,6 +75,10 @@ class DashboardWidget {
       'w': w,
       'h': h,
       'config': jsonEncode(config),
+      'dataSource': dataSource != null ? jsonEncode(dataSource!.toJson()) : null,
+      'fieldMappings': fieldMappings != null
+          ? jsonEncode(fieldMappings!.map((e) => e.toJson()).toList())
+          : null,
     };
   }
 
@@ -84,6 +97,16 @@ class DashboardWidget {
       config: map['config'] != null
           ? jsonDecode(map['config'] as String) as Map<String, dynamic>
           : {},
+      dataSource: map['dataSource'] != null
+          ? DataSourceConfig.fromJson(
+              jsonDecode(map['dataSource'] as String) as Map<String, dynamic>,
+            )
+          : null,
+      fieldMappings: map['fieldMappings'] != null
+          ? (jsonDecode(map['fieldMappings'] as String) as List<dynamic>)
+              .map((e) => FieldMapping.fromJson(e as Map<String, dynamic>))
+              .toList()
+          : null,
     );
   }
 }

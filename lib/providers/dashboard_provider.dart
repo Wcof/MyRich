@@ -5,7 +5,7 @@ import '../utils/grid_layout_manager.dart';
 
 class DashboardProvider extends ChangeNotifier {
   final DashboardRepository _repository = DashboardRepository();
-  
+
   List<Dashboard> _dashboards = [];
   Dashboard? _currentDashboard;
   bool _isLoading = false;
@@ -129,55 +129,69 @@ class DashboardProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> addWidget(DashboardWidget widget) async {
+  Future<void> addWidget(DashboardWidget widget, {int maxColumns = 48}) async {
     if (_currentDashboard == null) return;
 
     final (x, y) = GridLayoutManager.findNextAvailablePosition(
       _currentDashboard!.widgets,
       widget.w,
       widget.h,
-      maxColumns: 48,
+      maxColumns: maxColumns,
     );
 
     final positionedWidget = widget.copyWith(x: x, y: y);
     final updatedWidgets = [..._currentDashboard!.widgets, positionedWidget];
-    
+
     _currentDashboard = _currentDashboard!.copyWith(
       widgets: updatedWidgets,
       updatedAt: DateTime.now(),
     );
-    await _repository.saveWidgets(_currentDashboard!.id, updatedWidgets);
     notifyListeners();
+    await _persistWidgets(updatedWidgets);
   }
 
-  Future<void> updateWidget(DashboardWidget widget) async {
+  Future<void> updateWidget(
+    DashboardWidget widget, {
+    bool persist = true,
+    bool resolveOverlap = false,
+    int? maxColumns,
+  }) async {
     if (_currentDashboard == null) return;
 
-    final updatedWidgets = _currentDashboard!.widgets.map((w) {
+    var updatedWidgets = _currentDashboard!.widgets.map((w) {
       return w.id == widget.id ? widget : w;
     }).toList();
-    
+
+    if (resolveOverlap) {
+      updatedWidgets = GridLayoutManager.resolveOverlapsKeeping(
+        widget,
+        updatedWidgets,
+        maxColumns: maxColumns ?? GridLayoutManager.defaultMaxColumns,
+      );
+    }
+
     _currentDashboard = _currentDashboard!.copyWith(
       widgets: updatedWidgets,
       updatedAt: DateTime.now(),
     );
-    await _repository.saveWidgets(_currentDashboard!.id, updatedWidgets);
     notifyListeners();
+    if (persist) {
+      await _persistWidgets(updatedWidgets);
+    }
   }
 
   Future<void> deleteWidget(String widgetId) async {
     if (_currentDashboard == null) return;
 
-    final updatedWidgets = _currentDashboard!.widgets
-        .where((w) => w.id != widgetId)
-        .toList();
-    
+    final updatedWidgets =
+        _currentDashboard!.widgets.where((w) => w.id != widgetId).toList();
+
     _currentDashboard = _currentDashboard!.copyWith(
       widgets: updatedWidgets,
       updatedAt: DateTime.now(),
     );
-    await _repository.saveWidgets(_currentDashboard!.id, updatedWidgets);
     notifyListeners();
+    await _persistWidgets(updatedWidgets);
   }
 
   Future<void> reorderWidgets(List<DashboardWidget> widgets) async {
@@ -187,12 +201,24 @@ class DashboardProvider extends ChangeNotifier {
       widgets: widgets,
       updatedAt: DateTime.now(),
     );
-    await _repository.saveWidgets(_currentDashboard!.id, widgets);
     notifyListeners();
+    await _persistWidgets(widgets);
   }
 
   void clearError() {
     _error = null;
     notifyListeners();
+  }
+
+  Future<void> _persistWidgets(List<DashboardWidget> widgets) async {
+    final dashboardId = _currentDashboard?.id;
+    if (dashboardId == null) return;
+
+    try {
+      await _repository.saveWidgets(dashboardId, widgets);
+    } catch (e) {
+      _error = e.toString();
+      notifyListeners();
+    }
   }
 }

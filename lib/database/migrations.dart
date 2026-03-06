@@ -1,5 +1,5 @@
 class DatabaseMigrations {
-  static const int currentVersion = 2;
+  static const int currentVersion = 3;
 
   static String get createAssetTypesTable => '''
     CREATE TABLE asset_types (
@@ -26,17 +26,33 @@ class DatabaseMigrations {
     )
   ''';
 
+  static String get createAssetDetailsTable => '''
+    CREATE TABLE asset_details (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      asset_id INTEGER NOT NULL,
+      detail_type TEXT NOT NULL,
+      name TEXT NOT NULL,
+      data TEXT NOT NULL,
+      version INTEGER DEFAULT 1,
+      created_at INTEGER NOT NULL,
+      updated_at INTEGER NOT NULL,
+      FOREIGN KEY (asset_id) REFERENCES assets(id) ON DELETE CASCADE
+    )
+  ''';
+
   static String get createAssetRecordsTable => '''
     CREATE TABLE asset_records (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
-      asset_id INTEGER NOT NULL,
+      asset_id INTEGER,
+      asset_detail_id INTEGER,
       value REAL NOT NULL,
       quantity REAL,
       unit_price REAL,
       note TEXT,
       record_date INTEGER NOT NULL,
       created_at INTEGER NOT NULL,
-      FOREIGN KEY (asset_id) REFERENCES assets(id)
+      FOREIGN KEY (asset_id) REFERENCES assets(id),
+      FOREIGN KEY (asset_detail_id) REFERENCES asset_details(id) ON DELETE CASCADE
     )
   ''';
 
@@ -79,6 +95,7 @@ class DatabaseMigrations {
   static List<String> get allTables => [
     createAssetTypesTable,
     createAssetsTable,
+    createAssetDetailsTable,
     createAssetRecordsTable,
     createDashboardConfigsTable,
     createDashboardsTable,

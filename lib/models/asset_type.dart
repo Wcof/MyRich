@@ -25,7 +25,6 @@ class AssetType {
       'name': name,
       'icon': icon,
       'color': color,
-      'fields_schema': fieldsSchema,
       'is_system': isSystem ? 1 : 0,
       'created_at': createdAt,
       'updated_at': updatedAt,

@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import '../models/asset.dart';
 import '../providers/asset_provider.dart';
 import '../providers/asset_type_provider.dart';
+import '../widgets/asset_type_form_dialog.dart';
 
 class AssetFormDialog extends StatefulWidget {
   final Asset? asset;
@@ -198,44 +199,67 @@ class _AssetFormDialogState extends State<AssetFormDialog> {
                     );
                   }
 
-                  return DropdownButtonFormField<int>(
-                    initialValue: _selectedTypeId,
-                    decoration: const InputDecoration(
-                      labelText: '资产类型',
-                      border: OutlineInputBorder(),
-                      prefixIcon: Icon(Icons.category),
-                    ),
-                    items: assetTypes.map((type) {
-                      return DropdownMenuItem<int>(
-                        value: type.id,
-                        child: Row(
-                          children: [
-                            if (type.color != null)
-                              Container(
-                                width: 12,
-                                height: 12,
-                                margin: const EdgeInsets.only(right: 8),
-                                decoration: BoxDecoration(
-                                  color: _parseColor(type.color!),
-                                  shape: BoxShape.circle,
-                                ),
+                  return Row(
+                    children: [
+                      Expanded(
+                        child: DropdownButtonFormField<int>(
+                          initialValue: _selectedTypeId,
+                          decoration: const InputDecoration(
+                            labelText: '资产类型',
+                            border: OutlineInputBorder(),
+                            prefixIcon: Icon(Icons.category),
+                          ),
+                          items: assetTypes.map((type) {
+                            return DropdownMenuItem<int>(
+                              value: type.id,
+                              child: Row(
+                                children: [
+                                  if (type.color != null)
+                                    Container(
+                                      width: 12,
+                                      height: 12,
+                                      margin: const EdgeInsets.only(right: 8),
+                                      decoration: BoxDecoration(
+                                        color: _parseColor(type.color!),
+                                        shape: BoxShape.circle,
+                                      ),
+                                    ),
+                                  Text(type.name),
+                                ],
                               ),
-                            Text(type.name),
-                          ],
+                            );
+                          }).toList(),
+                          onChanged: (value) {
+                            setState(() {
+                              _selectedTypeId = value;
+                            });
+                          },
+                          validator: (value) {
+                            if (value == null) {
+                              return '请选择资产类型';
+                            }
+                            return null;
+                          },
                         ),
-                      );
-                    }).toList(),
-                    onChanged: (value) {
-                      setState(() {
-                        _selectedTypeId = value;
-                      });
-                    },
-                    validator: (value) {
-                      if (value == null) {
-                        return '请选择资产类型';
-                      }
-                      return null;
-                    },
+                      ),
+                      const SizedBox(width: 8),
+                      Container(
+                        decoration: BoxDecoration(
+                          color: Colors.grey.shade200,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: IconButton(
+                          icon: const Icon(Icons.add),
+                          tooltip: '添加自定义类型',
+                          onPressed: () {
+                            showDialog(
+                              context: context,
+                              builder: (_) => const AssetTypeFormDialog(),
+                            );
+                          },
+                        ),
+                      ),
+                    ],
                   );
                 },
               ),
