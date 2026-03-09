@@ -6,7 +6,7 @@ import '../providers/asset_type_provider.dart';
 import '../providers/asset_provider.dart';
 import '../providers/asset_record_provider.dart';
 import '../models/dashboard_model.dart';
-import '../models/asset.dart';
+import '../models/dashboard/portfolio_metrics.dart';
 import '../theme/app_theme.dart';
 import '../widgets/dashboard/chart_card.dart';
 import '../widgets/dashboard/add_widget_dialog.dart';
@@ -47,6 +47,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
         assetRecordProvider.loadRecords(),
       ]);
 
+      await dashboardProvider.refreshMetrics(
+        assets: assetProvider.assets,
+        records: assetRecordProvider.records,
+      );
+
       setState(() {
         _isLoading = false;
       });
@@ -56,45 +61,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
         _isLoading = false;
       });
     }
-  }
-
-  double _calculateTotalAssets(List<Asset> assets) {
-    double total = 0.0;
-    for (final asset in assets) {
-      if (asset.customData != null) {
-        try {
-          final data = Map<String, dynamic>.from(asset.customData as Map);
-          total += (data['value'] as num?)?.toDouble() ?? 0.0;
-        } catch (_) {
-          continue;
-        }
-      }
-    }
-    return total;
-  }
-
-  Map<String, double> _getAssetDistribution(
-      List<Asset> assets, List<dynamic> assetTypes) {
-    final Map<String, double> distribution = {};
-    for (final asset in assets) {
-      if (asset.customData != null) {
-        try {
-          final data = Map<String, dynamic>.from(asset.customData as Map);
-          final value = (data['value'] as num?)?.toDouble() ?? 0.0;
-          final typeId = asset.typeId;
-          final typeName = assetTypes
-              .firstWhere(
-                (t) => t.id == typeId,
-                orElse: () => assetTypes.first,
-              )
-              .name;
-          distribution[typeName] = (distribution[typeName] ?? 0) + value;
-        } catch (_) {
-          continue;
-        }
-      }
-    }
-    return distribution;
   }
 
   @override
@@ -132,6 +98,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ),
           child: Row(
             children: [
+              const Text(
+                '仪表盘',
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w700,
+                  color: Color(0xFF1E293B),
+                ),
+              ),
               const Spacer(),
               IconButton(
                 icon: Icon(
@@ -176,15 +150,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
       builder: (context, dashboardProvider, assetProvider, assetTypeProvider,
           recordProvider, child) {
         final dashboard = dashboardProvider.currentDashboard;
-        final assets = assetProvider.assets;
-        final assetTypes = assetTypeProvider.assetTypes;
+        final metrics = dashboardProvider.metrics;
 
         if (dashboard == null || dashboard.widgets.isEmpty) {
           return _buildEmptyState(dashboardProvider);
         }
 
-        final totalValue = _calculateTotalAssets(assets);
-        final distribution = _getAssetDistribution(assets, assetTypes);
         final isEditMode = dashboardProvider.isEditMode;
 
         return LayoutBuilder(
@@ -196,8 +167,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               padding: const EdgeInsets.all(16),
               child: _buildGrid(
                 dashboard.widgets,
-                totalValue,
-                distribution,
+                metrics,
                 dashboardProvider,
                 isEditMode,
                 availableWidth,
@@ -212,8 +182,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   Widget _buildGrid(
     List<DashboardWidget> widgets,
-    double totalValue,
-    Map<String, double> distribution,
+    PortfolioMetrics? metrics,
     DashboardProvider provider,
     bool isEditMode,
     double availableWidth,
@@ -262,8 +231,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   return _buildWidget(
                     widget,
                     widgets,
-                    totalValue,
-                    distribution,
+                    metrics,
                     provider,
                     isEditMode,
                     gridColumns,
@@ -287,8 +255,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   Widget _buildWidget(
     DashboardWidget widget,
     List<DashboardWidget> allWidgets,
-    double totalValue,
-    Map<String, double> distribution,
+    PortfolioMetrics? metrics,
     DashboardProvider provider,
     bool isEditMode,
     int gridColumns,
@@ -323,51 +290,29 @@ class _DashboardScreenState extends State<DashboardScreen> {
             maxColumns: gridColumns,
           );
         },
-        child: _buildWidgetContent(widget, totalValue, distribution, provider),
+        child: _buildWidgetContent(widget, metrics, provider),
       ),
     );
   }
 
   Widget _buildWidgetContent(
     DashboardWidget widget,
-    double totalValue,
-    Map<String, double> distribution,
+    PortfolioMetrics? metrics,
     DashboardProvider provider,
   ) {
     switch (widget.type) {
       case WidgetType.stat:
-        return _buildStatCard(widget, provider, totalValue);
+        return _buildStatCard(widget, provider, metrics);
       case WidgetType.chart:
-        final chartType = widget.config['chartType'] as String? ?? 'pie';
-        final List<ChartData> chartData = [];
-
-        if (chartType == 'pie') {
-          distribution.forEach((key, value) {
-            chartData.add(ChartData(key, value));
-          });
-        } else {
-          chartData.add(ChartData('1月', totalValue * 0.9));
-          chartData.add(ChartData('2月', totalValue * 0.95));
-          chartData.add(ChartData('3月', totalValue * 1.1));
-          chartData.add(ChartData('4月', totalValue));
-        }
-
-        return ChartCard(
-          title: widget.title,
-          chartType: chartType,
-          data: chartData,
-          isEditMode: provider.isEditMode,
-          onDelete: () => provider.deleteWidget(widget.id),
-          onEdit: () => _showConfigDialog(context, widget),
-        );
+        return _buildChartCard(widget, provider, metrics);
       case WidgetType.table:
         return _buildTableCard(widget, provider);
       case WidgetType.gauge:
-        return _buildGaugeCard(widget, provider);
+        return _buildGaugeCard(widget, provider, metrics);
       case WidgetType.progress:
-        return _buildProgressCard(widget, provider, totalValue);
+        return _buildProgressCard(widget, provider, metrics);
       case WidgetType.kpi:
-        return _buildKPICard(widget, provider, totalValue);
+        return _buildKPICard(widget, provider, metrics);
       case WidgetType.timeline:
         return _buildTimelineCard(widget, provider);
       case WidgetType.heatmap:
@@ -379,6 +324,41 @@ class _DashboardScreenState extends State<DashboardScreen> {
       default:
         return _buildFallbackWidget(widget, provider);
     }
+  }
+
+  Widget _buildChartCard(
+    DashboardWidget widget,
+    DashboardProvider provider,
+    PortfolioMetrics? metrics,
+  ) {
+    final chartType = widget.config['chartType'] as String? ?? 'pie';
+    final List<ChartData> chartData = [];
+
+    if (metrics != null) {
+      if (chartType == 'pie') {
+        for (final item in metrics.allocationItems) {
+          chartData.add(ChartData(item.name, item.value));
+        }
+      } else {
+        for (final point in metrics.trendSeries) {
+          chartData.add(
+            ChartData(
+              '${point.date.month}/${point.date.day}',
+              point.value,
+            ),
+          );
+        }
+      }
+    }
+
+    return ChartCard(
+      title: widget.title,
+      chartType: chartType,
+      data: chartData,
+      isEditMode: provider.isEditMode,
+      onDelete: () => provider.deleteWidget(widget.id),
+      onEdit: () => _showConfigDialog(context, widget),
+    );
   }
 
   Widget _buildFallbackWidget(
@@ -457,7 +437,22 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Widget _buildStatCard(
-      DashboardWidget widget, DashboardProvider provider, double totalValue) {
+    DashboardWidget widget,
+    DashboardProvider provider,
+    PortfolioMetrics? metrics,
+  ) {
+    double displayValue = 0;
+    if (metrics != null) {
+      final metric = widget.config['metric'] as String?;
+      if (metric == 'total_value') {
+        displayValue = metrics.totalCurrentValue;
+      } else if (metric == 'total_profit') {
+        displayValue = metrics.totalProfit;
+      } else if (metric == 'return_rate') {
+        displayValue = metrics.totalReturnRate * 100;
+      }
+    }
+
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -513,7 +508,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               child: Align(
                 alignment: Alignment.centerLeft,
                 child: Text(
-                  _formatValue(totalValue),
+                  _formatValue(displayValue),
                   style: const TextStyle(
                     fontSize: 28,
                     fontWeight: FontWeight.w700,
@@ -613,7 +608,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  Widget _buildGaugeCard(DashboardWidget widget, DashboardProvider provider) {
+  Widget _buildGaugeCard(
+    DashboardWidget widget,
+    DashboardProvider provider,
+    PortfolioMetrics? metrics,
+  ) {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -704,7 +703,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Widget _buildProgressCard(
-      DashboardWidget widget, DashboardProvider provider, double totalValue) {
+    DashboardWidget widget,
+    DashboardProvider provider,
+    PortfolioMetrics? metrics,
+  ) {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -788,7 +790,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Widget _buildKPICard(
-      DashboardWidget widget, DashboardProvider provider, double totalValue) {
+    DashboardWidget widget,
+    DashboardProvider provider,
+    PortfolioMetrics? metrics,
+  ) {
+    final totalValue = metrics?.totalCurrentValue ?? 0;
+    final totalReturnRate = metrics?.totalReturnRate ?? 0;
+    final isPositive = totalReturnRate >= 0;
+    
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -845,7 +854,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Text(
-                    _formatValue(totalValue * 1.2),
+                    _formatValue(totalValue),
                     style: const TextStyle(
                       fontSize: 28,
                       fontWeight: FontWeight.w700,
@@ -855,14 +864,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   const SizedBox(height: 8),
                   Row(
                     children: [
-                      Icon(Icons.arrow_upward,
-                          size: 16, color: const Color(0xFF10B981)),
+                      Icon(isPositive ? Icons.arrow_upward : Icons.arrow_downward,
+                          size: 16, color: isPositive ? const Color(0xFF10B981) : const Color(0xFFEF4444)),
                       const SizedBox(width: 4),
-                      const Text('+12.5%',
+                      Text('${isPositive ? '+' : ''}${(totalReturnRate * 100).toStringAsFixed(1)}%',
                           style: TextStyle(
                               fontSize: 14,
                               fontWeight: FontWeight.w600,
-                              color: Color(0xFF10B981))),
+                              color: isPositive ? const Color(0xFF10B981) : const Color(0xFFEF4444))),
                     ],
                   ),
                 ],

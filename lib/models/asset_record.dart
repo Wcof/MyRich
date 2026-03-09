@@ -66,4 +66,29 @@ class AssetRecord {
       createdAt: createdAt ?? this.createdAt,
     );
   }
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is AssetRecord &&
+          runtimeType == other.runtimeType &&
+          id == other.id &&
+          assetId == other.assetId &&
+          value == other.value &&
+          quantity == other.quantity &&
+          unitPrice == other.unitPrice &&
+          note == other.note &&
+          recordDate == other.recordDate &&
+          createdAt == other.createdAt;
+
+  @override
+  int get hashCode =>
+      id.hashCode ^
+      assetId.hashCode ^
+      value.hashCode ^
+      quantity.hashCode ^
+      unitPrice.hashCode ^
+      note.hashCode ^
+      recordDate.hashCode ^
+      createdAt.hashCode;
 }

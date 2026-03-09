@@ -60,4 +60,27 @@ class Asset {
       updatedAt: updatedAt ?? this.updatedAt,
     );
   }
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is Asset &&
+          runtimeType == other.runtimeType &&
+          id == other.id &&
+          typeId == other.typeId &&
+          name == other.name &&
+          location == other.location &&
+          customData == other.customData &&
+          createdAt == other.createdAt &&
+          updatedAt == other.updatedAt;
+
+  @override
+  int get hashCode =>
+      id.hashCode ^
+      typeId.hashCode ^
+      name.hashCode ^
+      location.hashCode ^
+      customData.hashCode ^
+      createdAt.hashCode ^
+      updatedAt.hashCode;
 }

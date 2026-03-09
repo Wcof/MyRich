@@ -9,10 +9,12 @@ import '../widgets/asset_type_form_dialog.dart';
 
 class AssetFormDialog extends StatefulWidget {
   final Asset? asset;
+  final int? initialTypeId;
 
   const AssetFormDialog({
     super.key,
     this.asset,
+    this.initialTypeId,
   });
 
   @override
@@ -52,7 +54,7 @@ class _AssetFormDialogState extends State<AssetFormDialog> {
     );
     _locationController = TextEditingController(text: widget.asset?.location ?? '');
     _noteController = TextEditingController(text: '');
-    _selectedTypeId = widget.asset?.typeId;
+    _selectedTypeId = widget.asset?.typeId ?? widget.initialTypeId;
     if (widget.asset != null) {
       _selectedDate = DateTime.fromMillisecondsSinceEpoch(widget.asset!.createdAt);
     }

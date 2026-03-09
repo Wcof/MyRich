@@ -4,11 +4,11 @@ import 'package:intl/intl.dart';
 import '../providers/asset_provider.dart';
 import '../providers/asset_type_provider.dart';
 import '../providers/asset_record_provider.dart';
+import '../services/fund_asset_mapper.dart';
 import '../models/asset.dart';
 import '../models/asset_type.dart';
-import '../models/asset_record.dart';
 import '../widgets/asset_form_dialog.dart';
-import '../widgets/asset_type_form_dialog.dart';
+import '../widgets/fund_form_dialog.dart';
 import '../theme/app_theme.dart';
 
 class AssetListScreen extends StatefulWidget {
@@ -55,30 +55,7 @@ class _AssetListScreenState extends State<AssetListScreen> {
   }
 
   double _getAssetValue(Asset asset) {
-    if (asset.customData != null) {
-      try {
-        final data = Map<String, dynamic>.from(
-          asset.customData as Map,
-        );
-        return (data['value'] as num?)?.toDouble() ?? 0.0;
-      } catch (_) {
-        return 0.0;
-      }
-    }
-    return 0.0;
-  }
-
-  String _getAssetTypeName(Asset asset, List<AssetType> assetTypes) {
-    final assetType = assetTypes.firstWhere(
-      (type) => type.id == asset.typeId,
-      orElse: () => AssetType(
-        id: asset.typeId,
-        name: '未知类型',
-        createdAt: DateTime.now().millisecondsSinceEpoch,
-        updatedAt: DateTime.now().millisecondsSinceEpoch,
-      ),
-    );
-    return assetType.name;
+    return FundAssetMapper.getFundValue(asset);
   }
 
   Color _parseColor(String colorString) {
@@ -94,23 +71,6 @@ class _AssetListScreenState extends State<AssetListScreen> {
     } catch (_) {
       return const Color(0xFF1E293B);
     }
-  }
-
-  Color _getAssetTypeColor(Asset asset, List<AssetType> assetTypes) {
-    final assetType = assetTypes.firstWhere(
-      (type) => type.id == asset.typeId,
-      orElse: () => AssetType(
-        id: asset.typeId,
-        name: '未知类型',
-        createdAt: DateTime.now().millisecondsSinceEpoch,
-        updatedAt: DateTime.now().millisecondsSinceEpoch,
-      ),
-    );
-    
-    if (assetType.color != null) {
-      return _parseColor(assetType.color!);
-    }
-    return const Color(0xFF1E293B);
   }
 
   @override
@@ -145,7 +105,6 @@ class _AssetListScreenState extends State<AssetListScreen> {
             builder: (context, assetProvider, assetTypeProvider, recordProvider, child) {
               final assets = _filterAssets(assetProvider.assets);
               final assetTypes = assetTypeProvider.assetTypes;
-              final records = recordProvider.records;
 
               if (assetProvider.isLoading) {
                 return const SliverFillRemaining(
@@ -161,21 +120,22 @@ class _AssetListScreenState extends State<AssetListScreen> {
                 );
               }
 
+              final groupedAssets = _groupAssetsByType(assets, assetTypes);
+              
               return SliverPadding(
                 padding: const EdgeInsets.only(bottom: 100),
-                sliver: SliverGrid(
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 2,
-                    mainAxisSpacing: AppTheme.spacingM,
-                    crossAxisSpacing: AppTheme.spacingM,
-                    childAspectRatio: 1.3,
-                  ),
+                sliver: SliverList(
                   delegate: SliverChildBuilderDelegate(
                     (context, index) {
-                      final asset = assets[index];
-                      return _buildAssetCard(asset, assetTypes, records);
+                      final entry = groupedAssets.entries.elementAt(index);
+                      return _buildAssetTypeGroup(
+                        entry.key,
+                        entry.value,
+                        assetTypes,
+                        recordProvider.records,
+                      );
                     },
-                    childCount: assets.length,
+                    childCount: groupedAssets.length,
                   ),
                 ),
               );
@@ -184,17 +144,431 @@ class _AssetListScreenState extends State<AssetListScreen> {
         ],
       ),
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: () {
-          showDialog(
-            context: context,
-            builder: (context) => const AssetFormDialog(),
-          );
-        },
+        onPressed: () => _showAddAssetDialog(),
         icon: const Icon(Icons.add_rounded),
         label: const Text('添加资产'),
       ),
     );
   }
+
+  void _showAddAssetDialog() async {
+    final assetTypeProvider = context.read<AssetTypeProvider>();
+    await assetTypeProvider.loadAssetTypes();
+    
+    if (!mounted) return;
+    
+    final assetTypes = assetTypeProvider.assetTypes;
+    
+    if (assetTypes.isEmpty) {
+      showDialog(
+        context: context,
+        builder: (context) => const AssetFormDialog(),
+      );
+      return;
+    }
+    
+    final selectedType = await showDialog<AssetType>(
+      context: context,
+      builder: (context) => Dialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Container(
+          constraints: const BoxConstraints(maxWidth: 400, maxHeight: 500),
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF6366F1).withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Icon(
+                      Icons.add_circle_outline_rounded,
+                      color: Color(0xFF6366F1),
+                      size: 20,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  const Text(
+                    '选择资产类型',
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.w700,
+                      color: Color(0xFF1E293B),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Text(
+                '请选择要添加的资产类型',
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Colors.grey[600],
+                ),
+              ),
+              const SizedBox(height: 20),
+              Flexible(
+                child: GridView.builder(
+                  shrinkWrap: true,
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 3,
+                    childAspectRatio: 1.0,
+                    crossAxisSpacing: 12,
+                    mainAxisSpacing: 12,
+                  ),
+                  itemCount: assetTypes.length,
+                  itemBuilder: (context, index) {
+                    final type = assetTypes[index];
+                    Color typeColor = const Color(0xFF1E293B);
+                    if (type.color != null) {
+                      try {
+                        String color = type.color!;
+                        if (color.startsWith('#')) {
+                          color = color.substring(1);
+                          if (color.length == 6) {
+                            color = 'FF$color';
+                          }
+                        }
+                        typeColor = Color(int.parse(color, radix: 16));
+                      } catch (_) {}
+                    }
+                    
+                    return InkWell(
+                      onTap: () => Navigator.pop(context, type),
+                      borderRadius: BorderRadius.circular(12),
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: typeColor.withValues(alpha: 0.08),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: typeColor.withValues(alpha: 0.2),
+                            width: 1.5,
+                          ),
+                        ),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              _getTypeIcon(type.name),
+                              color: typeColor,
+                              size: 28,
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              type.name,
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                                color: typeColor,
+                              ),
+                              textAlign: TextAlign.center,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+              const SizedBox(height: 16),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(context),
+                    style: TextButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                    ),
+                    child: const Text(
+                      '取消',
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+    
+    if (selectedType != null && mounted) {
+      if (selectedType.name == '基金') {
+        showDialog(
+          context: context,
+          builder: (context) => const FundFormDialog(),
+        );
+      } else {
+        showDialog(
+          context: context,
+          builder: (context) => AssetFormDialog(
+            initialTypeId: selectedType.id,
+          ),
+        );
+      }
+    }
+  }
+
+  IconData _getTypeIcon(String typeName) {
+    switch (typeName) {
+      case '现金':
+        return Icons.payments_rounded;
+      case '银行存款':
+        return Icons.account_balance_rounded;
+      case '股票':
+        return Icons.trending_up_rounded;
+      case '基金':
+        return Icons.pie_chart_rounded;
+      case '债券':
+        return Icons.receipt_long_rounded;
+      case '房产':
+        return Icons.home_rounded;
+      case '加密货币':
+        return Icons.currency_bitcoin_rounded;
+      case '期货':
+        return Icons.show_chart_rounded;
+      case '借款':
+        return Icons.arrow_upward_rounded;
+      case '贷款':
+        return Icons.arrow_downward_rounded;
+      default:
+        return Icons.account_balance_wallet_rounded;
+    }
+  }
+
+  Map<String, List<Asset>> _groupAssetsByType(List<Asset> assets, List<AssetType> assetTypes) {
+    final Map<String, List<Asset>> grouped = {};
+    
+    for (final asset in assets) {
+      final assetType = assetTypes.firstWhere(
+        (type) => type.id == asset.typeId,
+        orElse: () => AssetType(
+          id: asset.typeId,
+          name: '未知类型',
+          createdAt: DateTime.now().millisecondsSinceEpoch,
+          updatedAt: DateTime.now().millisecondsSinceEpoch,
+        ),
+      );
+      
+      final typeName = assetType.name;
+      if (!grouped.containsKey(typeName)) {
+        grouped[typeName] = [];
+      }
+      grouped[typeName]!.add(asset);
+    }
+    
+    return grouped;
+  }
+
+  Widget _buildAssetTypeGroup(
+    String typeName,
+    List<Asset> assets,
+    List<AssetType> assetTypes,
+    List<dynamic> records,
+  ) {
+    final assetType = assetTypes.firstWhere(
+      (type) => type.name == typeName,
+      orElse: () => AssetType(
+        id: 0,
+        name: typeName,
+        createdAt: DateTime.now().millisecondsSinceEpoch,
+        updatedAt: DateTime.now().millisecondsSinceEpoch,
+      ),
+    );
+    
+    Color typeColor = const Color(0xFF1E293B);
+    if (assetType.color != null) {
+      try {
+        String color = assetType.color!;
+        if (color.startsWith('#')) {
+          color = color.substring(1);
+          if (color.length == 6) {
+            color = 'FF$color';
+          }
+        }
+        typeColor = Color(int.parse(color, radix: 16));
+      } catch (_) {}
+    }
+    
+    double totalValue = 0;
+    for (final asset in assets) {
+      totalValue += _getAssetValue(asset);
+    }
+    
+    final formatter = NumberFormat.currency(
+      locale: 'zh_CN',
+      symbol: '¥',
+      decimalDigits: 2,
+    );
+
+    return Container(
+      margin: const EdgeInsets.only(
+        left: AppTheme.spacingM,
+        right: AppTheme.spacingM,
+        bottom: AppTheme.spacingM,
+      ),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(AppTheme.radiusXL),
+        boxShadow: [
+          BoxShadow(
+            color: typeColor.withValues(alpha: 0.08),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(AppTheme.spacingM),
+            decoration: BoxDecoration(
+              color: typeColor.withValues(alpha: 0.05),
+              borderRadius: const BorderRadius.only(
+                topLeft: Radius.circular(AppTheme.radiusXL),
+                topRight: Radius.circular(AppTheme.radiusXL),
+              ),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: typeColor.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Icon(
+                    _getTypeIcon(typeName),
+                    color: typeColor,
+                    size: 20,
+                  ),
+                ),
+                const SizedBox(width: AppTheme.spacingS),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        typeName,
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                          color: typeColor,
+                        ),
+                      ),
+                      Text(
+                        '${assets.length} 个资产',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey[600],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Text(
+                  formatter.format(totalValue),
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w700,
+                    color: typeColor,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(12),
+            child: Column(
+              children: assets.asMap().entries.map((entry) {
+                final index = entry.key;
+                final asset = entry.value;
+                final isLast = index == assets.length - 1;
+                return _buildAssetMiniCard(asset, typeColor, formatter, isLast);
+              }).toList(),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAssetMiniCard(Asset asset, Color typeColor, NumberFormat formatter, bool isLast) {
+    final value = _getAssetValue(asset);
+    
+    return GestureDetector(
+      onTap: () {
+        if (widget.onAssetTap != null) {
+          widget.onAssetTap!(asset);
+        }
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        decoration: BoxDecoration(
+          color: typeColor.withValues(alpha: 0.03),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 6,
+              height: 32,
+              decoration: BoxDecoration(
+                color: typeColor.withValues(alpha: 0.3),
+                borderRadius: BorderRadius.circular(3),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    asset.name,
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF1E293B),
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    formatter.format(value),
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w700,
+                      color: typeColor,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Icon(
+              Icons.chevron_right_rounded,
+              color: Colors.grey[400],
+              size: 20,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
 
   Widget _buildSearchBar() {
     return Container(
@@ -673,234 +1047,6 @@ class _AssetListScreenState extends State<AssetListScreen> {
               ),
             ),
           ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildAssetCard(Asset asset, List<AssetType> assetTypes, List<AssetRecord> records) {
-    final value = _getAssetValue(asset);
-    final typeName = _getAssetTypeName(asset, assetTypes);
-    final typeColor = _getAssetTypeColor(asset, assetTypes);
-    final formatter = NumberFormat.currency(
-      locale: 'zh_CN',
-      symbol: '¥',
-      decimalDigits: 2,
-    );
-    final dateFormatter = DateFormat('yyyy-MM-dd');
-    
-    final assetRecords = records.where((r) => r.assetId == asset.id).toList();
-    double change = 0;
-    double changePercent = 0;
-    bool hasChange = false;
-    
-    if (assetRecords.length >= 2) {
-      final sortedRecords = List<AssetRecord>.from(assetRecords)
-        ..sort((a, b) => a.recordDate.compareTo(b.recordDate));
-      final first = sortedRecords.first.value;
-      final last = sortedRecords.last.value;
-      change = last - first;
-      if (first != 0) {
-        changePercent = (change / first) * 100;
-      }
-      hasChange = true;
-    }
-    final isPositive = change >= 0;
-
-    return Card(
-      elevation: 0,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(AppTheme.radiusL),
-      ),
-      child: InkWell(
-        onTap: () {
-          if (widget.onAssetTap != null) {
-            widget.onAssetTap!(asset);
-          } else {
-            Navigator.pushNamed(
-              context,
-              '/asset_detail',
-              arguments: asset,
-            );
-          }
-        },
-        borderRadius: BorderRadius.circular(AppTheme.radiusL),
-        child: Container(
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(AppTheme.radiusL),
-            border: Border.all(
-              color: const Color(0xFFE8ECF4),
-              width: 1,
-            ),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(
-                padding: const EdgeInsets.all(AppTheme.spacingM),
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [
-                      typeColor.withValues(alpha: 0.1),
-                      typeColor.withValues(alpha: 0.05),
-                    ],
-                  ),
-                  borderRadius: const BorderRadius.only(
-                    topLeft: Radius.circular(AppTheme.radiusL),
-                    topRight: Radius.circular(AppTheme.radiusL),
-                  ),
-                ),
-                child: Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: typeColor,
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Icon(
-                        Icons.account_balance_wallet_rounded,
-                        color: Colors.white,
-                        size: 20,
-                      ),
-                    ),
-                    const SizedBox(width: AppTheme.spacingS),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            asset.name,
-                            style: const TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600,
-                              color: Color(0xFF1E293B),
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            typeName,
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: Colors.grey[600],
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.all(AppTheme.spacingM),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          formatter.format(value),
-                          style: const TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.w700,
-                            color: Color(0xFF1E293B),
-                          ),
-                        ),
-                        if (hasChange)
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: AppTheme.spacingS,
-                              vertical: 4,
-                            ),
-                            decoration: BoxDecoration(
-                              color: isPositive
-                                  ? const Color(0xFF10B981).withValues(alpha: 0.1)
-                                  : const Color(0xFFEF4444).withValues(alpha: 0.1),
-                              borderRadius: BorderRadius.circular(AppTheme.radiusS),
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(
-                                  isPositive ? Icons.arrow_upward : Icons.arrow_downward,
-                                  size: 12,
-                                  color: isPositive ? const Color(0xFF10B981) : const Color(0xFFEF4444),
-                                ),
-                                const SizedBox(width: 2),
-                                Text(
-                                  '${isPositive ? '+' : ''}${changePercent.toStringAsFixed(1)}%',
-                                  style: TextStyle(
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.w600,
-                                    color: isPositive ? const Color(0xFF10B981) : const Color(0xFFEF4444),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                      ],
-                    ),
-                    const SizedBox(height: AppTheme.spacingS),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        if (asset.location != null) ...[
-                          Row(
-                            children: [
-                              Icon(
-                                Icons.location_on_rounded,
-                                size: 14,
-                                color: Colors.grey[600],
-                              ),
-                              const SizedBox(width: 4),
-                              SizedBox(
-                                width: 100,
-                                child: Text(
-                                  asset.location!,
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    color: Colors.grey[700],
-                                  ),
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: AppTheme.spacingS,
-                            vertical: 4,
-                          ),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFF1E293B).withValues(alpha: 0.05),
-                            borderRadius: BorderRadius.circular(AppTheme.radiusS),
-                          ),
-                          child: Text(
-                            dateFormatter.format(
-                              DateTime.fromMillisecondsSinceEpoch(asset.createdAt),
-                            ),
-                            style: const TextStyle(
-                              fontSize: 10,
-                              color: Color(0xFF1E293B),
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
         ),
       ),
     );

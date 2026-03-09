@@ -2,6 +2,10 @@ import 'package:flutter/foundation.dart';
 import '../models/dashboard_model.dart';
 import '../repositories/dashboard_repository.dart';
 import '../utils/grid_layout_manager.dart';
+import '../models/asset.dart';
+import '../models/asset_record.dart';
+import '../models/dashboard/portfolio_metrics.dart';
+import '../services/portfolio_analyzer.dart';
 
 class DashboardProvider extends ChangeNotifier {
   final DashboardRepository _repository = DashboardRepository();
@@ -11,12 +15,18 @@ class DashboardProvider extends ChangeNotifier {
   bool _isLoading = false;
   bool _isEditMode = false;
   String? _error;
+  PortfolioMetrics? _metrics;
+  bool _metricsLoading = false;
+  List<Asset>? _cachedAssets;
+  List<AssetRecord>? _cachedRecords;
 
   List<Dashboard> get dashboards => _dashboards;
   Dashboard? get currentDashboard => _currentDashboard;
   bool get isLoading => _isLoading;
   bool get isEditMode => _isEditMode;
   String? get error => _error;
+  PortfolioMetrics? get metrics => _metrics;
+  bool get metricsLoading => _metricsLoading;
 
   Future<void> loadDashboards() async {
     _isLoading = true;
@@ -220,5 +230,35 @@ class DashboardProvider extends ChangeNotifier {
       _error = e.toString();
       notifyListeners();
     }
+  }
+
+  Future<void> refreshMetrics({
+    bool force = false,
+    required List<Asset> assets,
+    required List<AssetRecord> records,
+  }) async {
+    if (!force &&
+        _metrics != null &&
+        _cachedAssets != null &&
+        _cachedRecords != null &&
+        listEquals(_cachedAssets, assets) &&
+        listEquals(_cachedRecords, records)) {
+      return;
+    }
+
+    _metricsLoading = true;
+    notifyListeners();
+
+    try {
+      _metrics = PortfolioAnalyzer.buildMetrics(assets, records);
+      _cachedAssets = List<Asset>.from(assets);
+      _cachedRecords = List<AssetRecord>.from(records);
+    } catch (e) {
+      _metrics = PortfolioMetrics.empty();
+      _error = e.toString();
+    }
+
+    _metricsLoading = false;
+    notifyListeners();
   }
 }

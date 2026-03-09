@@ -4,13 +4,11 @@ import 'package:intl/intl.dart';
 import '../models/asset.dart';
 import '../models/asset_type.dart';
 import '../models/asset_record.dart';
-import '../models/asset_detail.dart';
 import '../providers/asset_provider.dart';
 import '../providers/asset_type_provider.dart';
 import '../providers/asset_record_provider.dart';
 import '../providers/asset_detail_provider.dart';
 import '../widgets/asset_form_dialog.dart';
-import '../widgets/asset_detail_form_dialog.dart';
 import '../theme/app_theme.dart';
 import 'package:syncfusion_flutter_charts/charts.dart';
 
@@ -59,20 +57,6 @@ class _AssetDetailScreenState extends State<AssetDetailScreen> with SingleTicker
     setState(() {
       _selectedTabIndex = _tabController.index;
     });
-  }
-
-  double _getAssetValue() {
-    if (widget.asset.customData != null) {
-      try {
-        final data = Map<String, dynamic>.from(
-          widget.asset.customData as Map,
-        );
-        return (data['value'] as num?)?.toDouble() ?? 0.0;
-      } catch (_) {
-        return 0.0;
-      }
-    }
-    return 0.0;
   }
 
   String _getAssetTypeName(List<AssetType> assetTypes) {
@@ -149,7 +133,6 @@ class _AssetDetailScreenState extends State<AssetDetailScreen> with SingleTicker
         builder: (context, assetProvider, assetTypeProvider, recordProvider, detailProvider, child) {
           final assetTypes = assetTypeProvider.assetTypes;
           final records = recordProvider.records;
-          final value = _getAssetValue();
           final typeName = _getAssetTypeName(assetTypes);
           final typeColor = _getAssetTypeColor(assetTypes);
           final formatter = NumberFormat.currency(
@@ -1202,7 +1185,7 @@ class _AssetDetailScreenState extends State<AssetDetailScreen> with SingleTicker
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                '${formatter.format(record.value)}',
+                  formatter.format(record.value),
                   style: const TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w600,

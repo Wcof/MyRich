@@ -5,10 +5,14 @@ import 'providers/asset_provider.dart';
 import 'providers/asset_detail_provider.dart';
 import 'providers/asset_record_provider.dart';
 import 'providers/dashboard_provider.dart';
+import 'providers/fund_sync_provider.dart';
+import 'services/fund_api_service.dart';
 import 'models/asset.dart';
+import 'models/asset_type.dart';
 import 'screens/dashboard_screen.dart';
 import 'screens/asset_list_screen.dart';
 import 'screens/asset_detail_screen.dart';
+import 'screens/fund_asset_detail_screen.dart';
 import 'theme/app_theme.dart';
 
 void main() {
@@ -28,6 +32,15 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => AssetDetailProvider()),
         ChangeNotifierProvider(create: (_) => AssetRecordProvider()),
         ChangeNotifierProvider(create: (_) => DashboardProvider()),
+        Provider(create: (_) => FundApiService()),
+        ChangeNotifierProvider<FundSyncProvider>(
+          create: (context) => FundSyncProvider(
+            apiService: context.read<FundApiService>(),
+            assetProvider: context.read<AssetProvider>(),
+            recordProvider: context.read<AssetRecordProvider>(),
+            typeProvider: context.read<AssetTypeProvider>(),
+          ),
+        ),
       ],
       child: MaterialApp(
         title: 'MyRich',
@@ -82,11 +95,35 @@ class _MainScreenState extends State<MainScreen> {
     ),
   ];
 
-  void _displayAssetDetail(Asset asset) {
+  void _displayAssetDetail(Asset asset) async {
+    final assetTypeProvider = context.read<AssetTypeProvider>();
+    await assetTypeProvider.loadAssetTypes();
+    
     setState(() {
       _selectedAsset = asset;
       _isShowingAssetDetail = true;
     });
+  }
+
+  Widget _getAssetDetailScreen(Asset asset) {
+    final assetTypeProvider = context.read<AssetTypeProvider>();
+    final assetType = assetTypeProvider.assetTypes.firstWhere(
+      (type) => type.id == asset.typeId,
+      orElse: () => assetTypeProvider.assetTypes.isNotEmpty 
+          ? assetTypeProvider.assetTypes.first 
+          : AssetType(
+              id: asset.typeId,
+              name: '未知类型',
+              createdAt: DateTime.now().millisecondsSinceEpoch,
+              updatedAt: DateTime.now().millisecondsSinceEpoch,
+            ),
+    );
+    
+    if (assetType.name == '基金') {
+      return FundAssetDetailScreen(asset: asset, onBack: _hideAssetDetail);
+    }
+    
+    return AssetDetailScreen(asset: asset, onBack: _hideAssetDetail);
   }
 
   void _hideAssetDetail() {
@@ -180,10 +217,7 @@ class _MainScreenState extends State<MainScreen> {
           const VerticalDivider(thickness: 1, width: 1),
           Expanded(
             child: _isShowingAssetDetail && _selectedAsset != null
-                ? AssetDetailScreen(
-                    asset: _selectedAsset!,
-                    onBack: _hideAssetDetail,
-                  )
+                ? _getAssetDetailScreen(_selectedAsset!)
                 : _getScreens()[_selectedIndex],
           ),
         ],
