@@ -81,4 +81,38 @@ class AssetRecordProvider with ChangeNotifier {
   Future<AssetRecord?> getLatestRecord(int assetId) async {
     return await _repository.getLatestByAssetId(assetId);
   }
+
+  Future<void> updateRecordStatus(int recordId, TransactionStatus status) async {
+    try {
+      final record = _records.firstWhere((r) => r.id == recordId);
+      final updatedRecord = record.copyWith(status: status);
+      await _repository.update(updatedRecord);
+      await loadRecordsByAsset(record.assetId);
+    } catch (e) {
+      _error = e.toString();
+      notifyListeners();
+    }
+  }
+
+  Future<void> batchUpdateStatus(List<int> recordIds, TransactionStatus status) async {
+    try {
+      for (final id in recordIds) {
+        final record = _records.firstWhere((r) => r.id == id);
+        final updatedRecord = record.copyWith(status: status);
+        await _repository.update(updatedRecord);
+      }
+      if (_records.isNotEmpty) {
+        await loadRecordsByAsset(_records.first.assetId);
+      }
+    } catch (e) {
+      _error = e.toString();
+      notifyListeners();
+    }
+  }
+
+  List<AssetRecord> getEstimatedRecords() {
+    return _records.where((record) => 
+        record.status == TransactionStatus.estimated && 
+        !record.isRevoked).toList();
+  }
 }

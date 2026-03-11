@@ -28,6 +28,9 @@ class DatabaseHelper {
       dbPath,
       options: OpenDatabaseOptions(
         version: DatabaseMigrations.currentVersion,
+        onConfigure: (db) async {
+          await db.execute('PRAGMA foreign_keys = ON');
+        },
         onCreate: _onCreate,
         onUpgrade: _onUpgrade,
       ),
@@ -52,9 +55,44 @@ class DatabaseHelper {
       case 1:
         await _migrateFromV1ToV2(db);
         await _migrateFromV2ToV3(db);
+        await _migrateFromV3ToV4(db);
+        await _migrateFromV4ToV5(db);
+        await _migrateFromV5ToV6(db);
+        await _migrateFromV6ToV7(db);
+        await _migrateFromV7ToV8(db);
         break;
       case 2:
         await _migrateFromV2ToV3(db);
+        await _migrateFromV3ToV4(db);
+        await _migrateFromV4ToV5(db);
+        await _migrateFromV5ToV6(db);
+        await _migrateFromV6ToV7(db);
+        await _migrateFromV7ToV8(db);
+        break;
+      case 3:
+        await _migrateFromV3ToV4(db);
+        await _migrateFromV4ToV5(db);
+        await _migrateFromV5ToV6(db);
+        await _migrateFromV6ToV7(db);
+        await _migrateFromV7ToV8(db);
+        break;
+      case 4:
+        await _migrateFromV4ToV5(db);
+        await _migrateFromV5ToV6(db);
+        await _migrateFromV6ToV7(db);
+        await _migrateFromV7ToV8(db);
+        break;
+      case 5:
+        await _migrateFromV5ToV6(db);
+        await _migrateFromV6ToV7(db);
+        await _migrateFromV7ToV8(db);
+        break;
+      case 6:
+        await _migrateFromV6ToV7(db);
+        await _migrateFromV7ToV8(db);
+        break;
+      case 7:
+        await _migrateFromV7ToV8(db);
         break;
       default:
         break;
@@ -90,6 +128,71 @@ class DatabaseHelper {
     ''');
     await db.execute('''
       CREATE INDEX IF NOT EXISTS idx_asset_records_detail_date ON asset_records(asset_detail_id, record_date DESC);
+    ''');
+  }
+
+  Future<void> _migrateFromV3ToV4(Database db) async {
+    await db.execute('''
+      ALTER TABLE asset_records ADD COLUMN is_revoked INTEGER DEFAULT 0;
+    ''');
+  }
+
+  Future<void> _migrateFromV4ToV5(Database db) async {
+    await db.execute('''
+      ALTER TABLE asset_records ADD COLUMN status INTEGER DEFAULT 0;
+    ''');
+    
+    await db.execute('''
+      UPDATE asset_records 
+      SET status = 1 
+      WHERE status = 0 AND is_revoked = 0;
+    ''');
+  }
+
+  Future<void> _migrateFromV5ToV6(Database db) async {
+    await db.execute(DatabaseMigrations.createFundPlansTable);
+  }
+
+  Future<void> _migrateFromV6ToV7(Database db) async {
+    await db.execute(DatabaseMigrations.createLoansTable);
+    await db.execute(DatabaseMigrations.createRentalIncomesTable);
+    await db.execute(DatabaseMigrations.createRealEstatePricesTable);
+    
+    await db.execute('''
+      CREATE INDEX IF NOT EXISTS idx_loans_asset_id ON loans(asset_id);
+    ''');
+    await db.execute('''
+      CREATE INDEX IF NOT EXISTS idx_loans_status ON loans(status);
+    ''');
+    await db.execute('''
+      CREATE INDEX IF NOT EXISTS idx_rental_incomes_asset_id ON rental_incomes(asset_id);
+    ''');
+    await db.execute('''
+      CREATE INDEX IF NOT EXISTS idx_rental_incomes_status ON rental_incomes(status);
+    ''');
+    await db.execute('''
+      CREATE INDEX IF NOT EXISTS idx_real_estate_prices_asset_id ON real_estate_prices(asset_id);
+    ''');
+    await db.execute('''
+      CREATE INDEX IF NOT EXISTS idx_real_estate_prices_record_date ON real_estate_prices(record_date DESC);
+    ''');
+  }
+
+  Future<void> _migrateFromV7ToV8(Database db) async {
+    await db.execute('''
+      ALTER TABLE loans ADD COLUMN custom_loan_type TEXT;
+    ''');
+    await db.execute('''
+      ALTER TABLE loans ADD COLUMN receiving_bank_account_id INTEGER;
+    ''');
+    await db.execute('''
+      ALTER TABLE loans ADD COLUMN payment_bank_account_id INTEGER;
+    ''');
+  }
+
+  Future<void> _migrateFromV8ToV9(Database db) async {
+    await db.execute('''
+      ALTER TABLE loans ADD COLUMN related_asset_id INTEGER;
     ''');
   }
 

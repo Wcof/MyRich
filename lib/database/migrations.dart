@@ -1,5 +1,5 @@
 class DatabaseMigrations {
-  static const int currentVersion = 3;
+  static const int currentVersion = 9;
 
   static String get createAssetTypesTable => '''
     CREATE TABLE asset_types (
@@ -51,8 +51,30 @@ class DatabaseMigrations {
       note TEXT,
       record_date INTEGER NOT NULL,
       created_at INTEGER NOT NULL,
+      is_revoked INTEGER DEFAULT 0,
+      status INTEGER DEFAULT 0,
       FOREIGN KEY (asset_id) REFERENCES assets(id),
       FOREIGN KEY (asset_detail_id) REFERENCES asset_details(id) ON DELETE CASCADE
+    )
+  ''';
+
+  static String get createFundPlansTable => '''
+    CREATE TABLE fund_plans (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      asset_id INTEGER NOT NULL,
+      fund_code TEXT NOT NULL,
+      fund_name TEXT NOT NULL,
+      amount REAL NOT NULL,
+      period INTEGER NOT NULL,
+      week_day INTEGER,
+      month_day INTEGER,
+      start_date INTEGER NOT NULL,
+      end_date INTEGER,
+      status INTEGER NOT NULL DEFAULT 0,
+      created_at INTEGER NOT NULL,
+      last_executed_at INTEGER,
+      next_execute_at INTEGER,
+      FOREIGN KEY (asset_id) REFERENCES assets(id) ON DELETE CASCADE
     )
   ''';
 
@@ -92,6 +114,59 @@ class DatabaseMigrations {
     )
   ''';
 
+  static String get createLoansTable => '''
+    CREATE TABLE loans (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      asset_id INTEGER NOT NULL,
+      loan_type TEXT NOT NULL,
+      custom_loan_type TEXT,
+      loan_amount REAL NOT NULL,
+      loan_rate REAL NOT NULL,
+      loan_period INTEGER NOT NULL,
+      repayment_method TEXT NOT NULL,
+      loan_date INTEGER NOT NULL,
+      due_date INTEGER NOT NULL,
+      paid_amount REAL DEFAULT 0,
+      remaining_amount REAL NOT NULL,
+      monthly_payment REAL NOT NULL,
+      status TEXT DEFAULT 'active',
+      receiving_bank_account_id INTEGER,
+      payment_bank_account_id INTEGER,
+      created_at INTEGER NOT NULL,
+      updated_at INTEGER NOT NULL,
+      FOREIGN KEY (asset_id) REFERENCES assets(id) ON DELETE CASCADE
+    )
+  ''';
+
+  static String get createRentalIncomesTable => '''
+    CREATE TABLE rental_incomes (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      asset_id INTEGER NOT NULL,
+      rental_status TEXT NOT NULL,
+      monthly_rent REAL NOT NULL,
+      rental_start_date INTEGER NOT NULL,
+      rental_end_date INTEGER,
+      tenant_name TEXT,
+      annual_income REAL NOT NULL,
+      status TEXT DEFAULT 'active',
+      created_at INTEGER NOT NULL,
+      updated_at INTEGER NOT NULL,
+      FOREIGN KEY (asset_id) REFERENCES assets(id) ON DELETE CASCADE
+    )
+  ''';
+
+  static String get createRealEstatePricesTable => '''
+    CREATE TABLE real_estate_prices (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      asset_id INTEGER NOT NULL,
+      price REAL NOT NULL,
+      source TEXT NOT NULL,
+      record_date INTEGER NOT NULL,
+      created_at INTEGER NOT NULL,
+      FOREIGN KEY (asset_id) REFERENCES assets(id) ON DELETE CASCADE
+    )
+  ''';
+
   static List<String> get allTables => [
     createAssetTypesTable,
     createAssetsTable,
@@ -100,5 +175,8 @@ class DatabaseMigrations {
     createDashboardConfigsTable,
     createDashboardsTable,
     createDashboardWidgetsTable,
+    createLoansTable,
+    createRentalIncomesTable,
+    createRealEstatePricesTable,
   ];
 }

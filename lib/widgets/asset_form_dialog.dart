@@ -3,9 +3,11 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import '../models/asset.dart';
+import '../models/asset_type.dart';
 import '../providers/asset_provider.dart';
 import '../providers/asset_type_provider.dart';
 import '../widgets/asset_type_form_dialog.dart';
+import '../widgets/location_picker.dart';
 
 class AssetFormDialog extends StatefulWidget {
   final Asset? asset;
@@ -43,6 +45,10 @@ class _AssetFormDialogState extends State<AssetFormDialog> {
     } catch (_) {
       return const Color(0xFF1E293B);
     }
+  }
+
+  bool _needsLocationField(String assetTypeName) {
+    return assetTypeName == '房产';
   }
 
   @override
@@ -287,13 +293,29 @@ class _AssetFormDialogState extends State<AssetFormDialog> {
                 },
               ),
               const SizedBox(height: 16),
-              TextFormField(
-                controller: _locationController,
-                decoration: const InputDecoration(
-                  labelText: '位置 (可选)',
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.location_on),
-                ),
+              Consumer<AssetTypeProvider>(
+                builder: (context, assetTypeProvider, child) {
+                  final assetType = assetTypeProvider.assetTypes.firstWhere(
+                    (type) => type.id == _selectedTypeId,
+                    orElse: () => AssetType(
+                      id: _selectedTypeId ?? 0,
+                      name: '未知类型',
+                      createdAt: DateTime.now().millisecondsSinceEpoch,
+                      updatedAt: DateTime.now().millisecondsSinceEpoch,
+                    ),
+                  );
+                  
+                  if (!_needsLocationField(assetType.name)) {
+                    return const SizedBox.shrink();
+                  }
+                  
+                  return LocationPicker(
+                    initialLocation: widget.asset?.location,
+                    onLocationSelected: (location) {
+                      _locationController.text = location;
+                    },
+                  );
+                },
               ),
               const SizedBox(height: 16),
               InkWell(

@@ -92,4 +92,15 @@ class AssetRecordRepository {
       whereArgs: [assetId],
     );
   }
+
+  Future<List<AssetRecord>> getEstimatedRecords() async {
+    final db = await _dbHelper.database;
+    final List<Map<String, dynamic>> maps = await db.query(
+      'asset_records',
+      where: 'status = ? AND is_revoked = ?',
+      whereArgs: [0, 0],
+      orderBy: 'record_date DESC',
+    );
+    return maps.map((map) => AssetRecord.fromMap(map)).toList();
+  }
 }

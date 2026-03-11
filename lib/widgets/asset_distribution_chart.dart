@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:syncfusion_flutter_charts/charts.dart';
 import '../models/asset.dart';
@@ -89,17 +90,20 @@ class AssetDistributionChart extends StatelessWidget {
   }
 
   double _getAssetValue(Asset asset) {
-    if (asset.customData != null) {
-      try {
-        final data = Map<String, dynamic>.from(
-          // ignore: avoid_dynamic_calls
-          asset.customData as Map,
-        );
-        return (data['value'] as num?)?.toDouble() ?? 0.0;
-      } catch (_) {
-        return 0.0;
+    if (asset.customData == null) return 0.0;
+    try {
+      final Map<String, dynamic> data = json.decode(asset.customData!);
+      // Fund
+      if (data.containsKey('currentPrice') && data.containsKey('quantity')) {
+        return (data['currentPrice'] as num).toDouble() * (data['quantity'] as num).toDouble();
       }
-    }
+      // Real Estate
+      if (data.containsKey('purchasePrice')) {
+        return (data['purchasePrice'] as num).toDouble();
+      }
+      // Generic
+      return (data['value'] as num?)?.toDouble() ?? 0.0;
+    } catch (_) {}
     return 0.0;
   }
 

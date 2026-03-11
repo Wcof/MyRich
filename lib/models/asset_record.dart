@@ -1,3 +1,8 @@
+enum TransactionStatus {
+  estimated,
+  confirmed,
+}
+
 class AssetRecord {
   final int? id;
   final int assetId;
@@ -7,6 +12,8 @@ class AssetRecord {
   final String? note;
   final int recordDate;
   final int createdAt;
+  final bool isRevoked;
+  final TransactionStatus status;
 
   AssetRecord({
     this.id,
@@ -17,6 +24,8 @@ class AssetRecord {
     this.note,
     required this.recordDate,
     required this.createdAt,
+    this.isRevoked = false,
+    this.status = TransactionStatus.estimated,
   });
 
   Map<String, dynamic> toMap() {
@@ -29,6 +38,8 @@ class AssetRecord {
       'note': note,
       'record_date': recordDate,
       'created_at': createdAt,
+      'is_revoked': isRevoked ? 1 : 0,
+      'status': status == TransactionStatus.confirmed ? 1 : 0,
     };
   }
 
@@ -42,6 +53,8 @@ class AssetRecord {
       note: map['note'] as String?,
       recordDate: map['record_date'] as int,
       createdAt: map['created_at'] as int,
+      isRevoked: map['is_revoked'] == 1,
+      status: map['status'] == 1 ? TransactionStatus.confirmed : TransactionStatus.estimated,
     );
   }
 
@@ -54,6 +67,8 @@ class AssetRecord {
     String? note,
     int? recordDate,
     int? createdAt,
+    bool? isRevoked,
+    TransactionStatus? status,
   }) {
     return AssetRecord(
       id: id ?? this.id,
@@ -64,6 +79,8 @@ class AssetRecord {
       note: note ?? this.note,
       recordDate: recordDate ?? this.recordDate,
       createdAt: createdAt ?? this.createdAt,
+      isRevoked: isRevoked ?? this.isRevoked,
+      status: status ?? this.status,
     );
   }
 
@@ -79,7 +96,9 @@ class AssetRecord {
           unitPrice == other.unitPrice &&
           note == other.note &&
           recordDate == other.recordDate &&
-          createdAt == other.createdAt;
+          createdAt == other.createdAt &&
+          isRevoked == other.isRevoked &&
+          status == other.status;
 
   @override
   int get hashCode =>
@@ -90,5 +109,7 @@ class AssetRecord {
       unitPrice.hashCode ^
       note.hashCode ^
       recordDate.hashCode ^
-      createdAt.hashCode;
+      createdAt.hashCode ^
+      isRevoked.hashCode ^
+      status.hashCode;
 }

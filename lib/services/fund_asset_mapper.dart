@@ -76,29 +76,6 @@ class FundData {
   }
 }
 
-  FundData copyWith({
-    String? fundCode,
-    String? fundName,
-    double? quantity,
-    double? purchasePrice,
-    double? currentPrice,
-    int? purchaseDate,
-    int? lastUpdateAt,
-    String? apiSource,
-  }) {
-    return FundData(
-      fundCode: fundCode ?? this.fundCode,
-      fundName: fundName ?? this.fundName,
-      quantity: quantity ?? this.quantity,
-      purchasePrice: purchasePrice ?? this.purchasePrice,
-      currentPrice: currentPrice ?? this.currentPrice,
-      purchaseDate: purchaseDate ?? this.purchaseDate,
-      lastUpdateAt: lastUpdateAt ?? this.lastUpdateAt,
-      apiSource: apiSource ?? this.apiSource,
-    );
-  }
-}
-
 class FundAssetMapper {
   static FundData? extractFundData(Asset asset) {
     if (asset.customData == null) return null;

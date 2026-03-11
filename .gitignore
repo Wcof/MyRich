@@ -58,5 +58,14 @@ data/
 *.bak
 *.tmp
 
+# Flutter
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+build/
+*.apk
+*.app
+*.ipa
+
 # UI/UX Pro Max Skill (local only)
 ui-ux-pro-max/

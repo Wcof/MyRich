@@ -345,6 +345,7 @@ class _WidgetConfigDialogState extends State<WidgetConfigDialog> {
         const SizedBox(height: AppTheme.spacingS),
         TextField(
           controller: _titleController,
+          maxLines: 1,
           decoration: const InputDecoration(
             labelText: '请输入组件标题',
             hintText: '例如：总资产、基金占比等',

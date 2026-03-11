@@ -6,6 +6,10 @@ import 'providers/asset_detail_provider.dart';
 import 'providers/asset_record_provider.dart';
 import 'providers/dashboard_provider.dart';
 import 'providers/fund_sync_provider.dart';
+import 'providers/fund_plan_provider.dart';
+import 'providers/loan_provider.dart';
+import 'providers/rental_income_provider.dart';
+import 'providers/real_estate_price_provider.dart';
 import 'services/fund_api_service.dart';
 import 'models/asset.dart';
 import 'models/asset_type.dart';
@@ -13,6 +17,8 @@ import 'screens/dashboard_screen.dart';
 import 'screens/asset_list_screen.dart';
 import 'screens/asset_detail_screen.dart';
 import 'screens/fund_asset_detail_screen.dart';
+import 'screens/stock_asset_detail_screen.dart';
+import 'screens/real_estate_asset_detail_screen.dart';
 import 'theme/app_theme.dart';
 
 void main() {
@@ -41,6 +47,10 @@ class MyApp extends StatelessWidget {
             typeProvider: context.read<AssetTypeProvider>(),
           ),
         ),
+        ChangeNotifierProvider(create: (_) => FundPlanProvider()),
+        ChangeNotifierProvider(create: (_) => LoanProvider()),
+        ChangeNotifierProvider(create: (_) => RentalIncomeProvider()),
+        ChangeNotifierProvider(create: (_) => RealEstatePriceProvider()),
       ],
       child: MaterialApp(
         title: 'MyRich',
@@ -71,6 +81,41 @@ class _MainScreenState extends State<MainScreen> {
   bool _isMenuExpanded = true;
   Asset? _selectedAsset;
   bool _isShowingAssetDetail = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _autoUpdateFundAssets();
+    });
+  }
+
+  Future<void> _autoUpdateFundAssets() async {
+    final now = DateTime.now();
+    final hour = now.hour;
+    
+    if (hour >= 9 && hour < 15) {
+      final fundSyncProvider = context.read<FundSyncProvider>();
+      final assetProvider = context.read<AssetProvider>();
+      final assetTypeProvider = context.read<AssetTypeProvider>();
+      
+      await assetProvider.loadAssets();
+      await assetTypeProvider.loadAssetTypes();
+      
+      final fundType = assetTypeProvider.assetTypes.firstWhere(
+        (type) => type.name == '基金',
+        orElse: () => throw Exception('基金类型不存在'),
+      );
+      
+      final fundAssets = assetProvider.assets.where(
+        (asset) => asset.typeId == fundType.id,
+      ).toList();
+      
+      if (fundAssets.isNotEmpty) {
+        await fundSyncProvider.refreshNow();
+      }
+    }
+  }
 
   final List<NavigationRailDestination> _destinations = const [
     NavigationRailDestination(
@@ -121,6 +166,14 @@ class _MainScreenState extends State<MainScreen> {
     
     if (assetType.name == '基金') {
       return FundAssetDetailScreen(asset: asset, onBack: _hideAssetDetail);
+    }
+    
+    if (assetType.name == '股票') {
+      return StockAssetDetailScreen(asset: asset, onBack: _hideAssetDetail);
+    }
+    
+    if (assetType.name == '房产') {
+      return RealEstateAssetDetailScreen(asset: asset, onBack: _hideAssetDetail);
     }
     
     return AssetDetailScreen(asset: asset, onBack: _hideAssetDetail);

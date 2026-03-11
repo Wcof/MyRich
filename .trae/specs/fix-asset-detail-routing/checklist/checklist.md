@@ -1,0 +1,3 @@
+- [x] main stock_asset_detail_screen.dart 导入语句已添加
+- [x] _getAssetDetailScreen 方法中股票类型路由已添加
+- [x] 股票资产点击后能正确导航到 StockAssetDetailScreen

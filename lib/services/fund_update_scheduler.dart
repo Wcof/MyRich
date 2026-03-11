@@ -3,6 +3,8 @@ import '../models/asset_record.dart';
 import '../providers/asset_provider.dart';
 import '../providers/asset_record_provider.dart';
 import '../providers/asset_type_provider.dart';
+import '../repositories/asset_record_repository.dart';
+import '../utils/workday_utils.dart';
 import 'fund_api_service.dart';
 import 'fund_asset_mapper.dart';
 
@@ -14,6 +16,7 @@ class FundUpdateScheduler {
   final AssetProvider _assetProvider;
   final AssetRecordProvider _recordProvider;
   final AssetTypeProvider _typeProvider;
+  final AssetRecordRepository _repository = AssetRecordRepository();
 
   Timer? _timer;
   Duration _interval = _defaultInterval;
@@ -96,13 +99,14 @@ class FundUpdateScheduler {
 
         final oldPrice = fundData.currentPrice;
         final newPrice = quote.nav;
+        final navDate = quote.navDate;
 
         if ((newPrice - oldPrice).abs() > 0.0001) {
           final updatedFundData = fundData.copyWith(
             fundName: quote.fundName,
             currentPrice: newPrice,
             lastUpdateAt: DateTime.now().millisecondsSinceEpoch,
-            apiSource: quote.source,
+            apiSource: '${quote.source} (${navDate.year}-${navDate.month.toString().padLeft(2, '0')}-${navDate.day.toString().padLeft(2, '0')})',
           );
 
           final updatedAsset = FundAssetMapper.updateFundData(asset, updatedFundData);
@@ -116,17 +120,49 @@ class FundUpdateScheduler {
               quantity: updatedFundData.quantity,
               recordDate: DateTime.now().millisecondsSinceEpoch,
               createdAt: DateTime.now().millisecondsSinceEpoch,
-              note: '净值更新: ${oldPrice.toStringAsFixed(4)} → ${newPrice.toStringAsFixed(4)}',
+              note: '净值更新 (${navDate.year}-${navDate.month.toString().padLeft(2, '0')}-${navDate.day.toString().padLeft(2, '0')}): ${oldPrice.toStringAsFixed(4)} → ${newPrice.toStringAsFixed(4)}',
             );
             await _recordProvider.addRecord(record);
           }
         }
       }
 
+      await _updateTransactionStatus();
+
       _lastUpdateTime = DateTime.now();
-    } catch (_) {
+    } catch (e) {
+      print('更新失败: $e');
     } finally {
       _isUpdating = false;
+    }
+  }
+
+  Future<void> _updateTransactionStatus() async {
+    try {
+      final estimatedRecords = await _repository.getEstimatedRecords();
+      final now = DateTime.now();
+      
+      final recordsToConfirm = <int>[];
+      
+      for (final record in estimatedRecords) {
+        final transactionDate = DateTime.fromMillisecondsSinceEpoch(record.recordDate);
+        
+        if (WorkdayUtils.shouldConfirmTransaction(transactionDate, now)) {
+          if (record.id != null) {
+            recordsToConfirm.add(record.id!);
+          }
+        }
+      }
+      
+      if (recordsToConfirm.isNotEmpty) {
+        for (final id in recordsToConfirm) {
+          final record = estimatedRecords.firstWhere((r) => r.id == id);
+          final updatedRecord = record.copyWith(status: TransactionStatus.confirmed);
+          await _repository.update(updatedRecord);
+        }
+      }
+    } catch (e) {
+      print('更新交易状态失败: $e');
     }
   }
 

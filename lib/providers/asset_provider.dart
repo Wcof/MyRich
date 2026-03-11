@@ -44,13 +44,15 @@ class AssetProvider with ChangeNotifier {
     }
   }
 
-  Future<void> addAsset(Asset asset) async {
+  Future<int?> addAsset(Asset asset) async {
     try {
-      await _repository.insert(asset);
+      final id = await _repository.insert(asset);
       await loadAssets();
+      return id;
     } catch (e) {
       _error = e.toString();
       notifyListeners();
+      return null;
     }
   }
 

@@ -25,8 +25,6 @@ class _FundFormDialogState extends State<FundFormDialog> {
   final _formKey = GlobalKey<FormState>();
   late TextEditingController _fundCodeController;
   late TextEditingController _fundNameController;
-  late TextEditingController _quantityController;
-  late TextEditingController _purchasePriceController;
   late TextEditingController _noteController;
   
   DateTime _purchaseDate = DateTime.now();
@@ -40,8 +38,6 @@ class _FundFormDialogState extends State<FundFormDialog> {
     
     _fundCodeController = TextEditingController();
     _fundNameController = TextEditingController();
-    _quantityController = TextEditingController();
-    _purchasePriceController = TextEditingController();
     _noteController = TextEditingController();
     
     if (widget.asset != null) {
@@ -49,9 +45,6 @@ class _FundFormDialogState extends State<FundFormDialog> {
       if (fundData != null) {
         _fundCodeController.text = fundData.fundCode;
         _fundNameController.text = fundData.fundName;
-        _quantityController.text = fundData.quantity.toString();
-        _purchasePriceController.text = fundData.purchasePrice.toString();
-        _purchaseDate = DateTime.fromMillisecondsSinceEpoch(fundData.purchaseDate);
         _isAutoFilled = true;
       }
     }
@@ -86,8 +79,6 @@ class _FundFormDialogState extends State<FundFormDialog> {
   void dispose() {
     _fundCodeController.dispose();
     _fundNameController.dispose();
-    _quantityController.dispose();
-    _purchasePriceController.dispose();
     _noteController.dispose();
     super.dispose();
   }
@@ -110,18 +101,24 @@ class _FundFormDialogState extends State<FundFormDialog> {
       final quote = await apiService.fetchQuote(fundCode);
       
       if (mounted) {
-        setState(() {
-          _fundNameController.text = quote.fundName;
-          if (_purchasePriceController.text.isEmpty) {
-            _purchasePriceController.text = quote.nav.toStringAsFixed(4);
-          }
-          _isAutoFilled = true;
-          _isLoading = false;
-        });
-        
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('已获取基金信息: ${quote.fundName}')),
-        );
+        if (quote != null) {
+          setState(() {
+            _fundNameController.text = quote.fundName;
+            _isAutoFilled = true;
+            _isLoading = false;
+          });
+          
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('已获取基金信息: ${quote.fundName}')),
+          );
+        } else {
+          setState(() {
+            _isLoading = false;
+          });
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('未找到该基金信息，请检查基金代码是否正确')),
+          );
+        }
       }
     } catch (e) {
       if (mounted) {
@@ -163,31 +160,15 @@ class _FundFormDialogState extends State<FundFormDialog> {
 
     final fundCode = _fundCodeController.text.trim();
     final fundName = _fundNameController.text.trim();
-    final quantity = double.tryParse(_quantityController.text) ?? 0;
-    final purchasePrice = double.tryParse(_purchasePriceController.text) ?? 0;
-
-    if (quantity <= 0) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('请输入有效的份额')),
-      );
-      return;
-    }
-
-    if (purchasePrice <= 0) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('请输入有效的买入净值')),
-      );
-      return;
-    }
 
     final now = DateTime.now();
     final fundData = FundData(
       fundCode: fundCode,
       fundName: fundName.isEmpty ? '基金 $fundCode' : fundName,
-      quantity: quantity,
-      purchasePrice: purchasePrice,
-      currentPrice: purchasePrice,
-      purchaseDate: _purchaseDate.millisecondsSinceEpoch,
+      quantity: 0,
+      purchasePrice: 0,
+      currentPrice: 0,
+      purchaseDate: now.millisecondsSinceEpoch,
       lastUpdateAt: now.millisecondsSinceEpoch,
     );
 
@@ -211,7 +192,7 @@ class _FundFormDialogState extends State<FundFormDialog> {
       if (mounted) {
         Navigator.pop(context, true);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(widget.asset?.id != null ? '基金已更新' : '基金已添加')),
+          SnackBar(content: Text(widget.asset?.id != null ? '基金已更新' : '基金已添加，请在详情页点击"买入"进行首次买入')),
         );
       }
     } catch (e) {
@@ -278,6 +259,7 @@ class _FundFormDialogState extends State<FundFormDialog> {
                     flex: 2,
                     child: TextFormField(
                       controller: _fundCodeController,
+                      maxLines: 1,
                       decoration: const InputDecoration(
                         labelText: '基金代码 *',
                         border: OutlineInputBorder(),
@@ -317,6 +299,7 @@ class _FundFormDialogState extends State<FundFormDialog> {
               const SizedBox(height: 16),
               TextFormField(
                 controller: _fundNameController,
+                maxLines: 1,
                 decoration: InputDecoration(
                   labelText: '基金名称',
                   border: const OutlineInputBorder(),
@@ -326,56 +309,6 @@ class _FundFormDialogState extends State<FundFormDialog> {
                       : null,
                 ),
                 enabled: false,
-              ),
-              const SizedBox(height: 16),
-              Row(
-                children: [
-                  Expanded(
-                    child: TextFormField(
-                      controller: _quantityController,
-                      decoration: const InputDecoration(
-                        labelText: '份额 *',
-                        border: OutlineInputBorder(),
-                        prefixIcon: Icon(Icons.pie_chart),
-                        suffixText: '份',
-                      ),
-                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                      validator: (value) {
-                        if (value == null || value.trim().isEmpty) {
-                          return '请输入份额';
-                        }
-                        final numValue = double.tryParse(value);
-                        if (numValue == null || numValue <= 0) {
-                          return '请输入有效份额';
-                        }
-                        return null;
-                      },
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: TextFormField(
-                      controller: _purchasePriceController,
-                      decoration: const InputDecoration(
-                        labelText: '买入净值 *',
-                        border: OutlineInputBorder(),
-                        prefixIcon: Icon(Icons.attach_money),
-                        suffixText: '元',
-                      ),
-                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                      validator: (value) {
-                        if (value == null || value.trim().isEmpty) {
-                          return '请输入买入净值';
-                        }
-                        final numValue = double.tryParse(value);
-                        if (numValue == null || numValue <= 0) {
-                          return '请输入有效净值';
-                        }
-                        return null;
-                      },
-                    ),
-                  ),
-                ],
               ),
               const SizedBox(height: 16),
               InkWell(
@@ -411,11 +344,28 @@ class _FundFormDialogState extends State<FundFormDialog> {
                 ),
                 maxLines: 2,
               ),
-              if (_fundCodeController.text.isNotEmpty && 
-                  _quantityController.text.isNotEmpty && 
-                  _purchasePriceController.text.isNotEmpty) ...[
+              if (_fundCodeController.text.isNotEmpty) ...[
                 const SizedBox(height: 16),
-                _buildPreviewCard(),
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFFF3E0),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: const Color(0xFFFFE0B2)),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.info_outline, size: 16, color: Colors.orange[700]),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          '添加基金后，请在详情页点击"买入"按钮进行首次买入操作',
+                          style: TextStyle(fontSize: 12, color: Colors.orange[900]),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               ],
             ],
           ),
@@ -436,60 +386,6 @@ class _FundFormDialogState extends State<FundFormDialog> {
           ),
         ),
       ],
-    );
-  }
-
-  Widget _buildPreviewCard() {
-    final quantity = double.tryParse(_quantityController.text) ?? 0;
-    final purchasePrice = double.tryParse(_purchasePriceController.text) ?? 0;
-    final purchaseValue = quantity * purchasePrice;
-    
-    final formatter = NumberFormat.currency(
-      locale: 'zh_CN',
-      symbol: '¥',
-      decimalDigits: 2,
-    );
-
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: const Color(0xFFFFF8E1),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: const Color(0xFFFFE082)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(Icons.calculate, size: 16, color: Colors.orange[700]),
-              const SizedBox(width: 8),
-              Text(
-                '投资预览',
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.orange[900],
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text('买入金额:', style: TextStyle(color: Colors.orange[800])),
-              Text(
-                formatter.format(purchaseValue),
-                style: TextStyle(
-                  fontWeight: FontWeight.w600,
-                  color: Colors.orange[900],
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
     );
   }
 }

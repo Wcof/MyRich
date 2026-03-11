@@ -4,11 +4,14 @@ import 'package:intl/intl.dart';
 import '../providers/asset_provider.dart';
 import '../providers/asset_type_provider.dart';
 import '../providers/asset_record_provider.dart';
+import '../providers/real_estate_price_provider.dart';
 import '../services/fund_asset_mapper.dart';
+import '../services/real_estate_asset_mapper.dart';
 import '../models/asset.dart';
 import '../models/asset_type.dart';
 import '../widgets/asset_form_dialog.dart';
 import '../widgets/fund_form_dialog.dart';
+import '../widgets/real_estate_form_dialog.dart';
 import '../theme/app_theme.dart';
 
 class AssetListScreen extends StatefulWidget {
@@ -54,7 +57,23 @@ class _AssetListScreenState extends State<AssetListScreen> {
     return filtered;
   }
 
-  double _getAssetValue(Asset asset) {
+  double _getAssetValue(Asset asset, [RealEstatePriceProvider? priceProvider]) {
+    final fundData = FundAssetMapper.extractFundData(asset);
+    if (fundData != null) {
+      return fundData.currentValue;
+    }
+    
+    final realEstateData = RealEstateAssetMapper.extractRealEstateData(asset);
+    if (realEstateData != null) {
+      if (priceProvider != null && asset.id != null) {
+        final prices = priceProvider.getPricesByAssetId(asset.id!);
+        if (prices.isNotEmpty) {
+          return prices.first.price;
+        }
+      }
+      return realEstateData.purchasePrice;
+    }
+    
     return FundAssetMapper.getFundValue(asset);
   }
 
@@ -82,9 +101,9 @@ class _AssetListScreenState extends State<AssetListScreen> {
           SliverToBoxAdapter(
             child: Padding(
               padding: const EdgeInsets.all(AppTheme.spacingM),
-              child: Consumer2<AssetProvider, AssetTypeProvider>(
-                builder: (context, assetProvider, assetTypeProvider, child) {
-                  return _buildStatsSection(assetProvider, assetTypeProvider);
+              child: Consumer3<AssetProvider, AssetTypeProvider, RealEstatePriceProvider>(
+                builder: (context, assetProvider, assetTypeProvider, priceProvider, child) {
+                  return _buildStatsSection(assetProvider, assetTypeProvider, priceProvider);
                 },
               ),
             ),
@@ -101,8 +120,8 @@ class _AssetListScreenState extends State<AssetListScreen> {
               child: _buildFilterChips(),
             ),
           ),
-          Consumer3<AssetProvider, AssetTypeProvider, AssetRecordProvider>(
-            builder: (context, assetProvider, assetTypeProvider, recordProvider, child) {
+          Consumer4<AssetProvider, AssetTypeProvider, AssetRecordProvider, RealEstatePriceProvider>(
+            builder: (context, assetProvider, assetTypeProvider, recordProvider, priceProvider, child) {
               final assets = _filterAssets(assetProvider.assets);
               final assetTypes = assetTypeProvider.assetTypes;
 
@@ -133,6 +152,7 @@ class _AssetListScreenState extends State<AssetListScreen> {
                         entry.value,
                         assetTypes,
                         recordProvider.records,
+                        priceProvider,
                       );
                     },
                     childCount: groupedAssets.length,
@@ -310,6 +330,11 @@ class _AssetListScreenState extends State<AssetListScreen> {
           context: context,
           builder: (context) => const FundFormDialog(),
         );
+      } else if (selectedType.name == '房产') {
+        showDialog(
+          context: context,
+          builder: (context) => const RealEstateFormDialog(),
+        );
       } else {
         showDialog(
           context: context,
@@ -377,6 +402,7 @@ class _AssetListScreenState extends State<AssetListScreen> {
     List<Asset> assets,
     List<AssetType> assetTypes,
     List<dynamic> records,
+    RealEstatePriceProvider priceProvider,
   ) {
     final assetType = assetTypes.firstWhere(
       (type) => type.name == typeName,
@@ -404,7 +430,7 @@ class _AssetListScreenState extends State<AssetListScreen> {
     
     double totalValue = 0;
     for (final asset in assets) {
-      totalValue += _getAssetValue(asset);
+      totalValue += _getAssetValue(asset, priceProvider);
     }
     
     final formatter = NumberFormat.currency(
@@ -492,13 +518,37 @@ class _AssetListScreenState extends State<AssetListScreen> {
           ),
           Padding(
             padding: const EdgeInsets.all(12),
-            child: Column(
-              children: assets.asMap().entries.map((entry) {
-                final index = entry.key;
-                final asset = entry.value;
-                final isLast = index == assets.length - 1;
-                return _buildAssetMiniCard(asset, typeColor, formatter, isLast);
-              }).toList(),
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final screenWidth = constraints.maxWidth;
+                int crossAxisCount;
+                
+                if (screenWidth < 600) {
+                  crossAxisCount = 2;
+                } else if (screenWidth < 900) {
+                  crossAxisCount = 3;
+                } else if (screenWidth < 1200) {
+                  crossAxisCount = 4;
+                } else {
+                  crossAxisCount = 5;
+                }
+                
+                return GridView.builder(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: crossAxisCount,
+                    childAspectRatio: 2.5,
+                    crossAxisSpacing: 8,
+                    mainAxisSpacing: 8,
+                  ),
+                  itemCount: assets.length,
+                  itemBuilder: (context, index) {
+                    final asset = assets[index];
+                    return _buildAssetMiniCard(asset, typeColor, formatter, priceProvider);
+                  },
+                );
+              },
             ),
           ),
         ],
@@ -506,8 +556,9 @@ class _AssetListScreenState extends State<AssetListScreen> {
     );
   }
 
-  Widget _buildAssetMiniCard(Asset asset, Color typeColor, NumberFormat formatter, bool isLast) {
-    final value = _getAssetValue(asset);
+  Widget _buildAssetMiniCard(Asset asset, Color typeColor, NumberFormat formatter, RealEstatePriceProvider priceProvider) {
+    final value = _getAssetValue(asset, priceProvider);
+    final fundData = FundAssetMapper.extractFundData(asset);
     
     return GestureDetector(
       onTap: () {
@@ -516,52 +567,74 @@ class _AssetListScreenState extends State<AssetListScreen> {
         }
       },
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        padding: const EdgeInsets.all(10),
         decoration: BoxDecoration(
           color: typeColor.withValues(alpha: 0.03),
           borderRadius: BorderRadius.circular(8),
+          border: Border.all(
+            color: typeColor.withValues(alpha: 0.1),
+            width: 1,
+          ),
         ),
-        child: Row(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Container(
-              width: 6,
-              height: 32,
-              decoration: BoxDecoration(
-                color: typeColor.withValues(alpha: 0.3),
-                borderRadius: BorderRadius.circular(3),
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
                     asset.name,
                     style: const TextStyle(
-                      fontSize: 14,
+                      fontSize: 13,
                       fontWeight: FontWeight.w600,
                       color: Color(0xFF1E293B),
                     ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
-                  const SizedBox(height: 2),
-                  Text(
-                    formatter.format(value),
-                    style: TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w700,
-                      color: typeColor,
+                ),
+                if (fundData != null) ...[
+                  const SizedBox(width: 6),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: typeColor.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: Text(
+                      fundData.fundCode,
+                      style: TextStyle(
+                        fontSize: 9,
+                        fontWeight: FontWeight.w500,
+                        color: typeColor,
+                      ),
                     ),
                   ),
                 ],
-              ),
+              ],
             ),
-            Icon(
-              Icons.chevron_right_rounded,
-              color: Colors.grey[400],
-              size: 20,
+            const SizedBox(height: 4),
+            Row(
+              children: [
+                Text(
+                  formatter.format(value),
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                    color: typeColor,
+                  ),
+                ),
+                if (fundData != null) ...[
+                  const SizedBox(width: 6),
+                  Text(
+                    '${fundData.quantity.toStringAsFixed(2)}份',
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: Colors.grey[600],
+                    ),
+                  ),
+                ],
+              ],
             ),
           ],
         ),
@@ -621,13 +694,13 @@ class _AssetListScreenState extends State<AssetListScreen> {
     );
   }
 
-  Widget _buildStatsSection(AssetProvider assetProvider, AssetTypeProvider assetTypeProvider) {
+  Widget _buildStatsSection(AssetProvider assetProvider, AssetTypeProvider assetTypeProvider, RealEstatePriceProvider priceProvider) {
     final assets = assetProvider.assets;
     final assetTypes = assetTypeProvider.assetTypes;
     
     double totalValue = 0;
     for (final asset in assets) {
-      totalValue += _getAssetValue(asset);
+      totalValue += _getAssetValue(asset, priceProvider);
     }
     
     final formatter = NumberFormat.currency(

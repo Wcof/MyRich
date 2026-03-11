@@ -74,6 +74,7 @@ class _AssetTypeFormDialogState extends State<AssetTypeFormDialog> {
           children: [
             TextFormField(
               controller: _nameController,
+              maxLines: 1,
               decoration: const InputDecoration(
                 labelText: '类型名称',
                 border: OutlineInputBorder(),

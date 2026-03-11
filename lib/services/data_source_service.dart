@@ -1,3 +1,4 @@
+import 'dart:convert';
 import '../models/data_source/data_source_config.dart';
 import '../models/asset.dart';
 import '../providers/asset_provider.dart';
@@ -178,12 +179,24 @@ class DataSourceService {
   }
 
   double _getAssetValue(Asset asset, String field) {
-    if (asset.customData != null) {
-      try {
-        final data = Map<String, dynamic>.from(asset.customData as Map);
+    if (asset.customData == null) return 0.0;
+
+    try {
+      final data = json.decode(asset.customData!);
+      if (data is Map<String, dynamic>) {
+        if (field == 'value') {
+          // Field 'value' logic
+          if (data.containsKey('currentPrice') && data.containsKey('quantity')) {
+            return (data['currentPrice'] as num).toDouble() * (data['quantity'] as num).toDouble();
+          }
+          if (data.containsKey('purchasePrice')) {
+            return (data['purchasePrice'] as num).toDouble();
+          }
+        }
         return (data[field] as num?)?.toDouble() ?? 0.0;
-      } catch (_) {}
-    }
+      }
+    } catch (_) {}
+    
     return 0.0;
   }
 }

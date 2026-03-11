@@ -1,53 +1,56 @@
-Running `(cd /Users/ldh/.pub-cache/hosted/pub.dev/objective_c-9.3.0/; TMPDIR=/var/folders/d7/ytcdr31947n5264t5mqtnh480000gn/T/ PATH=/Users/ldh/.trae-cn/tools/trae-gopls/current:/Users/ldh/.trae-cn/sdks/workspaces/347ec108/versions/node/current:/Users/ldh/.trae-cn/sdks/versions/node/current:/Users/ldh/Development/flutter/bin:/Users/ldh/.bun/bin:/Users/ldh/.bun/bin:/Users/ldh/.bun/bin:/Users/ldh/.antigravity/antigravity/bin:/Users/ldh/.npm-global/bin:/Users/ldh/.trae-cn/sdks/workspaces/347ec108/versions/node/current:/Users/ldh/.trae-cn/sdks/versions/node/current:/Users/ldh/.trae-cn/tools/trae-gopls/current:/opt/homebrew/bin:/opt/homebrew/sbin:/usr/local/bin:/System/Cryptexes/App/usr/bin:/usr/bin:/bin:/usr/sbin:/sbin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/local/bin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/bin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/appleinternal/bin:/opt/pmk/env/global/bin:/Library/Apple/usr/bin:/Applications/Trae CN.app/Contents/Resources/app/bin:/Users/ldh/.trae-cn/tools/trae-gopls/current:/Users/ldh/.trae-cn/sdks/workspaces/347ec108/versions/node/current:/Users/ldh/.trae-cn/sdks/versions/node/current:/Users/ldh/Development/flutter/bin:/Users/ldh/.bun/bin:/Users/ldh/.antigravity/antigravity/bin:/Users/ldh/.npm-global/bin HOME=/Users/ldh /Users/ldh/Development/flutter/bin/cache/dart-sdk/bin/dart --packages=/Users/ldh/Downloads/project/MyRich/.dart_tool/package_config.json /Users/ldh/Downloads/project/MyRich/.dart_tool/hooks_runner/objective_c/7ad245dadc/hook.dill --config=/Users/ldh/Downloads/project/MyRich/.dart_tool/hooks_runner/objective_c/7ad245dadc/input.json )`.
-INFO: 2026-03-09 13:48:03.115205: Running `/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang --version`.
+Running `(cd /Users/ldh/.pub-cache/hosted/pub.dev/objective_c-9.3.0/; TMPDIR=/var/folders/d7/ytcdr31947n5264t5mqtnh480000gn/T/ PATH=/Users/ldh/Development/flutter/bin:/Users/ldh/.bun/bin:/Users/ldh/.bun/bin:/Users/ldh/.bun/bin:/Users/ldh/.antigravity/antigravity/bin:/Users/ldh/.npm-global/bin:/Users/ldh/Development/flutter/bin/:/opt/homebrew/bin:/opt/homebrew/sbin:/usr/local/bin:/System/Cryptexes/App/usr/bin:/usr/bin:/bin:/usr/sbin:/sbin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/local/bin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/bin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/appleinternal/bin:/opt/pmk/env/global/bin:/Library/Apple/usr/bin:/Users/ldh/Development/flutter/bin/:/Users/ldh/Development/flutter/bin:/Users/ldh/.bun/bin:/Users/ldh/.antigravity/antigravity/bin:/Users/ldh/.npm-global/bin HOME=/Users/ldh /Users/ldh/Development/flutter/bin/cache/dart-sdk/bin/dart --packages=/Users/ldh/Downloads/project/MyRich/.dart_tool/package_config.json /Users/ldh/Downloads/project/MyRich/.dart_tool/hooks_runner/objective_c/7ad245dadc/hook.dill --config=/Users/ldh/Downloads/project/MyRich/.dart_tool/hooks_runner/objective_c/7ad245dadc/input.json )`.
+INFO: 2026-03-10 14:06:46.153329: Running `/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang --version`.
 
-INFO: 2026-03-09 13:48:03.174571: Running `/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang --version`.
+INFO: 2026-03-10 14:06:46.265641: Running `/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang --version`.
 
-INFO: 2026-03-09 13:48:03.191049: Running: /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.2.sdk -target arm64-apple-darwin -mmacos-version-min=13 -c /Users/ldh/.pub-cache/hosted/pub.dev/objective_c-9.3.0/src/include/dart_api_dl.c -fpic -I src -o /Users/ldh/Downloads/project/MyRich/.dart_tool/hooks_runner/shared/objective_c/build/7ad245dadc/obj/src/include/dart_api_dl.c.o
+INFO: 2026-03-10 14:06:46.280791: Running: /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.2.sdk -target arm64-apple-darwin -mmacos-version-min=13 -c /Users/ldh/.pub-cache/hosted/pub.dev/objective_c-9.3.0/src/include/dart_api_dl.c -fpic -I src -o /Users/ldh/Downloads/project/MyRich/.dart_tool/hooks_runner/shared/objective_c/build/7ad245dadc/obj/src/include/dart_api_dl.c.o
 
-INFO: 2026-03-09 13:48:03.191410: Running: /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.2.sdk -target arm64-apple-darwin -mmacos-version-min=13 -c /Users/ldh/.pub-cache/hosted/pub.dev/objective_c-9.3.0/src/objective_c.c -fpic -I src -o /Users/ldh/Downloads/project/MyRich/.dart_tool/hooks_runner/shared/objective_c/build/7ad245dadc/obj/src/objective_c.c.o
+INFO: 2026-03-10 14:06:46.281300: Running: /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.2.sdk -target arm64-apple-darwin -mmacos-version-min=13 -c /Users/ldh/.pub-cache/hosted/pub.dev/objective_c-9.3.0/test/util.c -fpic -I src -o /Users/ldh/Downloads/project/MyRich/.dart_tool/hooks_runner/shared/objective_c/build/7ad245dadc/obj/test/util.c.o
 
-INFO: 2026-03-09 13:48:03.191732: Running: /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.2.sdk -target arm64-apple-darwin -mmacos-version-min=13 -x objective-c -fobjc-arc -c /Users/ldh/.pub-cache/hosted/pub.dev/objective_c-9.3.0/src/input_stream_adapter.m -fpic -I src -o /Users/ldh/Downloads/project/MyRich/.dart_tool/hooks_runner/shared/objective_c/build/7ad245dadc/obj/src/input_stream_adapter.m.o
+tive_c.c.o
 
-INFO: 2026-03-09 13:48:03.192284: Running: /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.2.sdk -target arm64-apple-darwin -mmacos-version-min=13 -x objective-c -fobjc-arc -c /Users/ldh/.pub-cache/hosted/pub.dev/objective_c-9.3.0/src/objective_c.m -fpic -I src -o /Users/ldh/Downloads/project/MyRich/.dart_tool/hooks_runner/shared/objective_c/build/7ad245dadc/obj/src/objective_c.m.o
+INFO: 2026-03-10 14:06:46.281520: Running: /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.2.sdk -target arm64-apple-darwin -mmacos-version-min=13 -x objective-c -fobjc-arc -c /Users/ldh/.pub-cache/hosted/pub.dev/objective_c-9.3.0/src/input_stream_adapter.m -fpic -I src -o /Users/ldh/Downloads/project/MyRich/.dart_tool/hooks_runner/shared/objective_c/build/7ad245dadc/obj/src/input_stream_adapter.m.o
 
-INFO: 2026-03-09 13:48:03.193039: Running: /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.2.sdk -target arm64-apple-darwin -mmacos-version-min=13 -x objective-c -fobjc-arc -c /Users/ldh/.pub-cache/hosted/pub.dev/objective_c-9.3.0/src/ns_number.m -fpic -I src -o /Users/ldh/Downloads/project/MyRich/.dart_tool/hooks_runner/shared/objective_c/build/7ad245dadc/obj/src/ns_number.m.o
+INFO: 2026-03-10 14:06:46.281653: Running: /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.2.sdk -target arm64-apple-darwin -mmacos-version-min=13 -x objective-c -fobjc-arc -c /Users/ldh/.pub-cache/hosted/pub.dev/objective_c-9.3.0/src/objective_c.m -fpic -I src -o /Users/ldh/Downloads/project/MyRich/.dart_tool/hooks_runner/shared/objective_c/build/7ad245dadc/obj/src/objective_c.m.o
 
-INFO: 2026-03-09 13:48:03.193255: Running: /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.2.sdk -target arm64-apple-darwin -mmacos-version-min=13 -x objective-c -fobjc-arc -c /Users/ldh/.pub-cache/hosted/pub.dev/objective_c-9.3.0/src/protocol.m -fpic -I src -o /Users/ldh/Downloads/project/MyRich/.dart_tool/hooks_runner/shared/objective_c/build/7ad245dadc/obj/src/protocol.m.o
+INFO: 2026-03-10 14:06:46.281944: Running: /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.2.sdk -target arm64-apple-darwin -mmacos-version-min=13 -x objective-c -fobjc-arc -c /Users/ldh/.pub-cache/hosted/pub.dev/objective_c-9.3.0/src/ns_number.m -fpic -I src -o /Users/ldh/Downloads/project/MyRich/.dart_tool/hooks_runner/shared/objective_c/build/7ad245dadc/obj/src/ns_number.m.o
 
-INFO: 2026-03-09 13:48:03.193392: Running: /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.2.sdk -target arm64-apple-darwin -mmacos-version-min=13 -x objective-c -fobjc-arc -c /Users/ldh/.pub-cache/hosted/pub.dev/objective_c-9.3.0/src/objective_c_bindings_generated.m -fpic -I src -o /Users/ldh/Downloads/project/MyRich/.dart_tool/hooks_runner/shared/objective_c/build/7ad245dadc/obj/src/objective_c_bindings_generated.m.o
+INFO: 2026-03-10 14:06:46.282111: Running: /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.2.sdk -target arm64-apple-darwin -mmacos-version-min=13 -x objective-c -fobjc-arc -c /Users/ldh/.pub-cache/hosted/pub.dev/objective_c-9.3.0/src/protocol.m -fpic -I src -o /Users/ldh/Downloads/project/MyRich/.dart_tool/hooks_runner/shared/objective_c/build/7ad245dadc/obj/src/protocol.m.o
 
-INFO: 2026-03-09 13:48:03.399443: 
-INFO: 2026-03-09 13:48:03.399584: 
-INFO: 2026-03-09 13:48:03.399625: Generated /Users/ldh/Downloads/project/MyRich/.dart_tool/hooks_runner/shared/objective_c/build/7ad245dadc/obj/src/observer.m.o
-INFO: 2026-03-09 13:48:03.399786: 
-INFO: 2026-03-09 13:48:03.399837: 
-INFO: 2026-03-09 13:48:03.399851: Generated /Users/ldh/Downloads/project/MyRich/.dart_tool/hooks_runner/shared/objective_c/build/7ad245dadc/obj/src/objective_c.c.o
-INFO: 2026-03-09 13:48:03.399927: 
-INFO: 2026-03-09 13:48:03.399937: 
-INFO: 2026-03-09 13:48:03.399948: Generated /Users/ldh/Downloads/project/MyRich/.dart_tool/hooks_runner/shared/objective_c/build/7ad245dadc/obj/src/include/dart_api_dl.c.o
+INFO: 2026-03-10 14:06:46.282236: Running: /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.2.sdk -target arm64-apple-darwin -mmacos-version-min=13 -x objective-c -fobjc-arc -c /Users/ldh/.pub-cache/hosted/pub.dev/objective_c-9.3.0/src/objective_c_bindings_generated.m -fpic -I src -o /Users/ldh/Downloads/project/MyRich/.dart_tool/hooks_runner/shared/objective_c/build/7ad245dadc/obj/src/objective_c_bindings_generated.m.o
 
-INFO: 2026-03-09 13:48:03.400510: 
-INFO: 2026-03-09 13:48:03.400573: 
-INFO: 2026-03-09 13:48:03.400608: Generated /Users/ldh/Downloads/project/MyRich/.dart_tool/hooks_runner/shared/objective_c/build/7ad245dadc/obj/src/protocol.m.o
+INFO: 2026-03-10 14:06:46.482594: 
+INFO: 2026-03-10 14:06:46.482794: 
+INFO: 2026-03-10 14:06:46.482867: Generated /Users/ldh/Downloads/project/MyRich/.dart_tool/hooks_runner/shared/objective_c/build/7ad245dadc/obj/src/observer.m.o
+INFO: 2026-03-10 14:06:46.483048: 
+INFO: 2026-03-10 14:06:46.483072: 
+INFO: 2026-03-10 14:06:46.483091: Generated /Users/ldh/Downloads/project/MyRich/.dart_tool/hooks_runner/shared/objective_c/build/7ad245dadc/obj/src/objective_c.c.o
 
-INFO: 2026-03-09 13:48:03.404859: 
-INFO: 2026-03-09 13:48:03.405064: 
-INFO: 2026-03-09 13:48:03.405134: Generated /Users/ldh/Downloads/project/MyRich/.dart_tool/hooks_runner/shared/objective_c/build/7ad245dadc/obj/test/util.c.o
+INFO: 2026-03-10 14:06:46.487687: 
+INFO: 2026-03-10 14:06:46.487777: 
+INFO: 2026-03-10 14:06:46.487816: Generated /Users/ldh/Downloads/project/MyRich/.dart_tool/hooks_runner/shared/objective_c/build/7ad245dadc/obj/src/protocol.m.o
 
-INFO: 2026-03-09 13:48:03.803544: 
-INFO: 2026-03-09 13:48:03.803590: 
-INFO: 2026-03-09 13:48:03.803603: Generated /Users/ldh/Downloads/project/MyRich/.dart_tool/hooks_runner/shared/objective_c/build/7ad245dadc/obj/src/ns_number.m.o
+INFO: 2026-03-10 14:06:46.488200: Generated /Users/ldh/Downloads/project/MyRich/.dart_tool/hooks_runner/shared/objective_c/build/7ad245dadc/obj/test/util.c.o
 
-INFO: 2026-03-09 13:48:03.824074: 
-INFO: 2026-03-09 13:48:03.824173: Generated /Users/ldh/Downloads/project/MyRich/.dart_tool/hooks_runner/shared/objective_c/build/7ad245dadc/obj/src/objective_c.m.o
+INFO: 2026-03-10 14:06:46.861774: 
+INFO: 2026-03-10 14:06:46.861826: 
+INFO: 2026-03-10 14:06:46.861861: Generated /Users/ldh/Downloads/project/MyRich/.dart_tool/hooks_runner/shared/objective_c/build/7ad245dadc/obj/src/ns_number.m.o
 
-ad245dadc/obj/src/input_stream_adapter.m.o
-INFO: 2026-03-09 13:48:03.824054: 
+INFO: 2026-03-10 14:06:46.881100: 
+INFO: 2026-03-10 14:06:46.881192: 
+INFO: 2026-03-10 14:06:46.881247: Generated /Users/ldh/Downloads/project/MyRich/.dart_tool/hooks_runner/shared/objective_c/build/7ad245dadc/obj/src/objective_c.m.o
 
-INFO: 2026-03-09 13:48:03.852682: Running: /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang -shared -Wl,-encryptable -undefined dynamic_lookup -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.2.sdk -target arm64-apple-darwin -mmacos-version-min=13 /Users/ldh/Downloads/project/MyRich/.dart_tool/hooks_runner/shared/objective_c/build/7ad245dadc/obj/src/include/dart_api_dl.c.o /Users/ldh/Downloads/project/MyRich/.dart_tool/hooks_runner/shared/objective_c/build/7ad245dadc/obj/src/objective_c.c.o /Users/ldh/Downloads/project/MyRich/.dart_tool/hooks_runner/shared/objective_c/build/7ad245dadc/obj/test/util.c.o /Users/ldh/Downloads/project/MyRich/.dart_tool/hooks_runner/shared/objective_c/build/7ad245dadc/obj/src/input_stream_adapter.m.o /Users/ldh/Downloads/project/MyRich/.dart_tool/hooks_runner/shared/objective_c/build/7ad245dadc/obj/src/objective_c.m.o /Users/ldh/Downloads/project/MyRich/.dart_tool/hooks_runner/shared/objective_c/build/7ad245dadc/obj/src/observer.m.o /Users/ldh/Downloads/project/MyRich/.dart_tool/hooks_runner/shared/objective_c/build/7ad245dadc/obj/src/ns_number.m.o /Users/ldh/Downloads/project/MyRich/.dart_tool/hooks_runner/shared/objective_c/build/7ad245dadc/obj/src/protocol.m.o /Users/ldh/Downloads/project/MyRich/.dart_tool/hooks_runner/shared/objective_c/build/7ad245dadc/obj/src/objective_c_bindings_generated.m.o -o /Users/ldh/Downloads/project/MyRich/.dart_tool/hooks_runner/shared/objective_c/build/7ad245dadc/objective_c.dylib
+INFO: 2026-03-10 14:06:46.884331: 
+INFO: 2026-03-10 14:06:46.884370: 
+INFO: 2026-03-10 14:06:46.884382: Generated /Users/ldh/Downloads/project/MyRich/.dart_tool/hooks_runner/shared/objective_c/build/7ad245dadc/obj/src/input_stream_adapter.m.o
 
-INFO: 2026-03-09 13:48:03.989138: 
-INFO: 2026-03-09 13:48:03.989198: 
-INFO: 2026-03-09 13:48:03.989207: Generated /Users/ldh/Downloads/project/MyRich/.dart_tool/hooks_runner/shared/objective_c/build/7ad245dadc/objective_c.dylib
+INFO: 2026-03-10 14:06:46.911155: 
+INFO: 2026-03-10 14:06:46.911204: 
+INFO: 2026-03-10 14:06:46.911215: Generated /Users/ldh/Downloads/project/MyRich/.dart_tool/hooks_runner/shared/objective_c/build/7ad245dadc/obj/src/objective_c_bindings_generated.m.o
+
+INFO: 2026-03-10 14:06:46.911629: Running: /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang -shared -Wl,-encryptable -undefined dynamic_lookup -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.2.sdk -target arm64-apple-darwin -mmacos-version-min=13 /Users/ldh/Downloads/project/MyRich/.dart_tool/hooks_runner/shared/objective_c/build/7ad245dadc/obj/src/include/dart_api_dl.c.o /Users/ldh/Downloads/project/MyRich/.dart_tool/hooks_runner/shared/objective_c/build/7ad245dadc/obj/src/objective_c.c.o /Users/ldh/Downloads/project/MyRich/.dart_tool/hooks_runner/shared/objective_c/build/7ad245dadc/obj/test/util.c.o /Users/ldh/Downloads/project/MyRich/.dart_tool/hooks_runner/shared/objective_c/build/7ad245dadc/obj/src/input_stream_adapter.m.o /Users/ldh/Downloads/project/MyRich/.dart_tool/hooks_runner/shared/objective_c/build/7ad245dadc/obj/src/objective_c.m.o /Users/ldh/Downloads/project/MyRich/.dart_tool/hooks_runner/shared/objective_c/build/7ad245dadc/obj/src/observer.m.o /Users/ldh/Downloads/project/MyRich/.dart_tool/hooks_runner/shared/objective_c/build/7ad245dadc/obj/src/ns_number.m.o /Users/ldh/Downloads/project/MyRich/.dart_tool/hooks_runner/shared/objective_c/build/7ad245dadc/obj/src/protocol.m.o /Users/ldh/Downloads/project/MyRich/.dart_tool/hooks_runner/shared/objective_c/build/7ad245dadc/obj/src/objective_c_bindings_generated.m.o -o /Users/ldh/Downloads/project/MyRich/.dart_tool/hooks_runner/shared/objective_c/build/7ad245dadc/objective_c.dylib
+
+INFO: 2026-03-10 14:06:47.123135: 
+INFO: 2026-03-10 14:06:47.123200: 
+INFO: 2026-03-10 14:06:47.123210: Generated /Users/ldh/Downloads/project/MyRich/.dart_tool/hooks_runner/shared/objective_c/build/7ad245dadc/objective_c.dylib
 
